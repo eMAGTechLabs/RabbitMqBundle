@@ -51,5 +51,7 @@ class PurgeConsumerCommand extends ConsumerCommand
         $this->consumer = $this->getContainer()
             ->get(sprintf($this->getConsumerService(), $input->getArgument('name')));
         $this->consumer->purge($input->getArgument('name'));
+
+        return 0;
     }
 }

@@ -51,5 +51,7 @@ class DeleteCommand extends ConsumerCommand
         $this->consumer = $this->getContainer()
             ->get(sprintf($this->getConsumerService(), $input->getArgument('name')));
         $this->consumer->delete();
+
+        return 0;
     }
 }
