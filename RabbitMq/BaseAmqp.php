@@ -268,18 +268,11 @@ abstract class BaseAmqp
      */
     protected function dispatchEvent($eventName, AMQPEvent $event)
     {
-        if (!empty($this->getEventDispatcher())) {
-            if ($this->getEventDispatcher() instanceof ContractsEventDispatcherInterface) {
-                $this->getEventDispatcher()->dispatch(
-                    $event,
-                    $eventName
-                );
-            } else {
-                $this->getEventDispatcher()->dispatch(
-                    $event,
-                    $eventName
-                );
-            }
+        if ($this->getEventDispatcher() instanceof ContractsEventDispatcherInterface) {
+            $this->getEventDispatcher()->dispatch(
+                $event,
+                $eventName
+            );
         }
     }
 

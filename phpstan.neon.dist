@@ -3,7 +3,6 @@ includes:
 	- vendor/phpstan/phpstan-phpunit/rules.neon
 parameters:
     level: 5
-    reportUnmatchedIgnoredErrors: false
     paths:
         - Command
         - DataCollector
@@ -19,5 +18,4 @@ parameters:
         - '#Call to an undefined method Symfony\\Component\\DependencyInjection\\Definition::((setFactoryService)|(setFactoryMethod))\(\)\.#'
         - '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition::((children)|(append))\(\)\.#'
         - '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface::((booleanNode)|(scalarNode))\(\)#'
-        - '#Method Symfony\\Contracts\\EventDispatcher\\EventDispatcherInterface::dispatch\(\) invoked with 2 parameters, 1 required\.#'
         - '#Parameter \#1 \$node of method OldSound\\RabbitMqBundle\\DependencyInjection\\Configuration::addQueueNodeConfiguration\(\) expects Symfony\\Component\\Config\\Definition\\Builder\\ArrayNodeDefinition, Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition given\.#'
