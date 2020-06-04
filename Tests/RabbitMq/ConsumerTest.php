@@ -7,11 +7,14 @@ use OldSound\RabbitMqBundle\Event\BeforeProcessingMessageEvent;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\Event\OnIdleEvent;
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AMQPConnection;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface as ContractsEventDispatcherInterface;
 
 class ConsumerTest extends TestCase
@@ -23,14 +26,14 @@ class ConsumerTest extends TestCase
 
     protected function prepareAMQPConnection()
     {
-        return $this->getMockBuilder('\PhpAmqpLib\Connection\AMQPConnection')
+        return $this->getMockBuilder(AMQPConnection::class)
             ->disableOriginalConstructor()
             ->getMock();
     }
 
     protected function prepareAMQPChannel()
     {
-        return $this->getMockBuilder('\PhpAmqpLib\Channel\AMQPChannel')
+        return $this->getMockBuilder(AMQPChannel::class)
             ->disableOriginalConstructor()
             ->getMock();
     }
@@ -75,7 +78,7 @@ class ConsumerTest extends TestCase
             $amqpChannel->expects($this->never())->method('basic_nack');
         }
 
-        $eventDispatcher = $this->getMockBuilder('Symfony\Contracts\EventDispatcher\EventDispatcherInterface')
+        $eventDispatcher = $this->getMockBuilder(EventDispatcherInterface::class)
             ->disableOriginalConstructor()
             ->getMock();
 
@@ -177,15 +180,14 @@ class ConsumerTest extends TestCase
                     })
             );
 
-
-        $eventDispatcher = $this->getMockBuilder('Symfony\Contracts\EventDispatcher\EventDispatcherInterface')
+        $eventDispatcher = $this->getMockBuilder(EventDispatcherInterface::class)
             ->disableOriginalConstructor()
             ->getMock();
 
         $eventDispatcher->expects($this->exactly(count($consumerCallBacks)))
             ->method('dispatch')
-            ->with($this->isInstanceOf('OldSound\RabbitMqBundle\Event\OnConsumeEvent'), OnConsumeEvent::NAME)
-            ->willReturn($this->isInstanceOf('OldSound\RabbitMqBundle\Event\OnConsumeEvent'));
+            ->with($this->isInstanceOf(OnConsumeEvent::class), OnConsumeEvent::NAME)
+            ->willReturn($this->isInstanceOf(OnConsumeEvent::class));
 
         $consumer->setEventDispatcher($eventDispatcher);
         $consumer->consume(1);
@@ -250,13 +252,13 @@ class ConsumerTest extends TestCase
             ->with(null, false, $consumer->getIdleTimeout())
             ->willThrowException(new AMQPTimeoutException());
 
-        $eventDispatcher = $this->getMockBuilder('Symfony\Contracts\EventDispatcher\EventDispatcherInterface')
+        $eventDispatcher = $this->getMockBuilder(EventDispatcherInterface::class)
             ->disableOriginalConstructor()
             ->getMock();
 
         $eventDispatcher->expects($this->at(1))
             ->method('dispatch')
-            ->with($this->isInstanceOf('OldSound\RabbitMqBundle\Event\OnIdleEvent'), OnIdleEvent::NAME)
+            ->with($this->isInstanceOf(OnIdleEvent::class), OnIdleEvent::NAME)
             ->willReturnCallback(function (OnIdleEvent $event, $eventName) {
                 $event->setForceStop(false);
 
@@ -265,8 +267,8 @@ class ConsumerTest extends TestCase
 
         $eventDispatcher->expects($this->at(3))
             ->method('dispatch')
-            ->with($this->isInstanceOf('OldSound\RabbitMqBundle\Event\OnIdleEvent'), OnIdleEvent::NAME)
-            ->willReturn(function (OnIdleEvent $event, $eventName) {
+            ->with($this->isInstanceOf(OnIdleEvent::class), OnIdleEvent::NAME)
+            ->willReturnCallback(function (OnIdleEvent $event, $eventName) {
                 $event->setForceStop(true);
 
                 return $event;
@@ -274,7 +276,7 @@ class ConsumerTest extends TestCase
 
         $consumer->setEventDispatcher($eventDispatcher);
 
-        $this->expectException('PhpAmqpLib\Exception\AMQPTimeoutException');
+        $this->expectException(AMQPTimeoutException::class);
         $consumer->consume(10);
     }
 
