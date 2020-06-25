@@ -313,7 +313,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
     private function getMessageChannel($deliveryTag)
     {
         $message = $this->getMessage($deliveryTag);
-        if (empty($message)) {
+        if ($message === null) {
             throw new AMQPRuntimeException(sprintf('Unknown delivery_tag %d!', $deliveryTag));
         }
 
