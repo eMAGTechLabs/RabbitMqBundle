@@ -1,6 +1,10 @@
 # RabbitMqBundle #
 
-[![Join the chat at https://gitter.im/php-amqplib/RabbitMqBundle](https://badges.gitter.im/php-amqplib/RabbitMqBundle.svg)](https://gitter.im/php-amqplib/RabbitMqBundle?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Latest Version](http://img.shields.io/packagist/v/emag-tech-labs/rabbitmq-bundle.svg?style=flat-square)](https://github.com/eMAGTechLabs/RabbitMqBundle/releases)
+[![Build Status](https://travis-ci.org/eMAGTechLabs/RabbitMqBundle.svg?branch=master)](https://travis-ci.org/eMAGTechLabs/RabbitMqBundle)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/eMAGTechLabs/RabbitMqBundle/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/eMAGTechLabs/RabbitMqBundle/?branch=master)
+[![Code Coverage](https://scrutinizer-ci.com/g/eMAGTechLabs/RabbitMqBundle/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/eMAGTechLabs/RabbitMqBundle/?branch=master)
+[![PHPStan](https://img.shields.io/badge/PHPStan-enabled-brightgreen.svg?style=flat-square)](https://github.com/phpstan/phpstan)
 
 ## About ##
 
@@ -23,8 +27,6 @@ All the examples expect a running RabbitMQ server.
 
 This bundle was presented at [Symfony Live Paris 2011](http://www.symfony-live.com/paris/schedule#session-av1) conference. See the slides [here](http://www.slideshare.net/old_sound/theres-a-rabbit-on-my-symfony).
 
-[![Build Status](https://travis-ci.org/eMAGTechLabs/RabbitMqBundle.svg?branch=master)](https://travis-ci.org/eMAGTechLabs/RabbitMqBundle)
-
 ## Version 2 ##
 Due to the breaking changes happened caused by Symfony >=4.4, a new tag was released, making the bundle compatible with Symfony >=4.4.
 Also it eliminates a lot notices caused by symfony event dispatcher in Symfony 4.3.
@@ -36,7 +38,7 @@ Also it eliminates a lot notices caused by symfony event dispatcher in Symfony 4
 Require the bundle and its dependencies with composer:
 
 ```bash
-$ composer require php-amqplib/rabbitmq-bundle
+$ composer require emag-tech-labs/rabbitmq-bundle
 ```
 
 Register the bundle:
@@ -64,7 +66,7 @@ Require the bundle in your composer.json file:
 ```
 {
     "require": {
-        "php-amqplib/rabbitmq-bundle": "^2.0",
+        "emag-tech-labs/rabbitmq-bundle": "^2.0",
     }
 }
 ```
