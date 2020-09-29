@@ -98,6 +98,14 @@ $containerBuilder->addCompilerPass(new RegisterPartsPass());
 
 ## Usage ##
 
+You could use the `emag-tech-labs/rabbitmq-bundle` symfony recipe:
+
+```bash
+$ composer require emag-tech-labs/rabbitmq
+```
+
+OR
+
 Add the `old_sound_rabbit_mq` section in your configuration file:
 
 ```yaml
