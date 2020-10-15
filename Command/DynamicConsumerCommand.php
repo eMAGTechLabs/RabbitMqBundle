@@ -11,6 +11,7 @@
 namespace OldSound\RabbitMqBundle\Command;
 
 use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
 
 class DynamicConsumerCommand extends BaseConsumerCommand
 {
@@ -25,12 +26,12 @@ class DynamicConsumerCommand extends BaseConsumerCommand
             ;
     }
 
-    protected function getConsumerService()
+    protected function getConsumerService(): string
     {
         return 'old_sound_rabbit_mq.%s_dynamic';
     }
 
-    protected function initConsumer($input)
+    protected function initConsumer(InputInterface $input): void
     {
         parent::initConsumer($input);
         $this->consumer->setContext($input->getArgument('context'));

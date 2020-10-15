@@ -474,10 +474,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
         return (memory_get_usage(true) >= ($this->getMemoryLimit() * 1048576));
     }
 
-    /**
-     * @return  int
-     */
-    public function getIdleTimeout()
+    public function getIdleTimeout(): int
     {
         return $this->idleTimeout;
     }

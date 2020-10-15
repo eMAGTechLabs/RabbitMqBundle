@@ -36,7 +36,7 @@ class AMQPConnectionFactory
      *                                                                  connection parameters.
      */
     public function __construct(
-        $class,
+        string $class,
         array $parameters,
         ConnectionParametersProviderInterface $parametersProvider = null
     ) {
@@ -55,10 +55,8 @@ class AMQPConnectionFactory
 
     /**
      * Creates the appropriate connection using current parameters.
-     *
-     * @return AbstractConnection
      */
-    public function createConnection()
+    public function createConnection(): AbstractConnection
     {
         $ref = new \ReflectionClass($this->class);
 
@@ -105,12 +103,8 @@ class AMQPConnectionFactory
 
     /**
      * Parses connection parameters from URL parameter.
-     *
-     * @param array $parameters
-     *
-     * @return array
      */
-    private function parseUrl(array $parameters)
+    private function parseUrl(array $parameters): array
     {
         if (!$parameters['url']) {
             return $parameters;

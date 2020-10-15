@@ -6,15 +6,16 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 class RpcServer extends BaseConsumer
 {
+    /** @var string */
     private $serializer = 'serialize';
 
-    public function initServer($name)
+    public function initServer(string $name): void
     {
         $this->setExchangeOptions(array('name' => $name, 'type' => 'direct'));
         $this->setQueueOptions(array('name' => $name . '-queue'));
     }
 
-    public function processMessage(AMQPMessage $msg)
+    public function processMessage(AMQPMessage $msg): void
     {
         try {
             $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
@@ -28,13 +29,13 @@ class RpcServer extends BaseConsumer
         }
     }
 
-    protected function sendReply($result, $client, $correlationId)
+    protected function sendReply(string $result, string $client, string $correlationId): void
     {
         $reply = new AMQPMessage($result, array('content_type' => 'text/plain', 'correlation_id' => $correlationId));
         $this->getChannel()->basic_publish($reply, '', $client);
     }
 
-    public function setSerializer($serializer)
+    public function setSerializer(string $serializer): void
     {
         $this->serializer = $serializer;
     }

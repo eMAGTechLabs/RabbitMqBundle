@@ -11,13 +11,18 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 abstract class BaseConsumerCommand extends BaseRabbitMqCommand
 {
+    /** @var Consumer */
     protected $consumer;
 
+    /** @var string */
     protected $amount;
 
+    /**
+     * @return mixed
+     */
     abstract protected function getConsumerService();
 
-    public function stopConsumer()
+    public function stopConsumer(): void
     {
         if ($this->consumer instanceof Consumer) {
             // Process current message, then halt consumer
@@ -30,9 +35,18 @@ abstract class BaseConsumerCommand extends BaseRabbitMqCommand
         }
     }
 
-    public function restartConsumer()
+    public function restartConsumer():void
     {
-        // TODO: Implement restarting of consumer
+        if ($this->consumer instanceof Consumer) {
+            // Process current message, then halt consumer
+            $this->consumer->forceStopConsumer();
+
+            // Halt consumer if waiting for a new message from the queue
+            try {
+                $this->consumer->start();
+            } catch (\ErrorException $e) {
+            }
+        }
     }
 
     protected function configure()
@@ -90,12 +104,12 @@ abstract class BaseConsumerCommand extends BaseRabbitMqCommand
         return $this->consumer->consume($this->amount);
     }
 
-    protected function initConsumer($input)
+    protected function initConsumer(InputInterface $input): void
     {
         $this->consumer = $this->getContainer()
                 ->get(sprintf($this->getConsumerService(), $input->getArgument('name')));
 
-        if (!is_null($input->getOption('memory-limit')) && ctype_digit((string) $input->getOption('memory-limit')) && $input->getOption('memory-limit') > 0) {
+        if (!is_null($input->getOption('memory-limit')) && ctype_digit((string) $input->getOption('memory-limit')) && (int)$input->getOption('memory-limit') > 0) {
             $this->consumer->setMemoryLimit($input->getOption('memory-limit'));
         }
         $this->consumer->setRoutingKey($input->getOption('route'));

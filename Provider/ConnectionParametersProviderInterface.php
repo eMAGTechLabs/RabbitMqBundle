@@ -30,8 +30,6 @@ interface ConnectionParametersProviderInterface
      *
      * If constructor_args is present, all the other parameters are ignored; constructor_args are passes as constructor
      * arguments.
-     *
-     * @return array
      */
-    public function getConnectionParameters();
+    public function getConnectionParameters(): array;
 }

@@ -4,7 +4,7 @@ namespace OldSound\RabbitMqBundle\Command;
 
 class AnonConsumerCommand extends BaseConsumerCommand
 {
-    protected function configure()
+    protected function configure(): void
     {
         parent::configure();
 
@@ -15,7 +15,7 @@ class AnonConsumerCommand extends BaseConsumerCommand
 
     }
 
-    protected function getConsumerService()
+    protected function getConsumerService(): string
     {
         return 'old_sound_rabbit_mq.%s_anon';
     }

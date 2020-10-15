@@ -38,10 +38,9 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
     }
 
     /**
-     * @param int $msgAmount
      * @throws \ErrorException
      */
-    public function start($msgAmount = 0)
+    public function start (int $msgAmount = 0): void
     {
         $this->target = $msgAmount;
 
@@ -56,6 +55,8 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
      * Tell the server you are going to stop consuming.
      *
      * It will finish up the last message and not send you any more.
+     *
+     * @return void
      */
     public function stopConsuming()
     {
@@ -63,6 +64,9 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
         $this->getChannel()->basic_cancel($this->getConsumerTag(), false, true);
     }
 
+    /**
+     * @return void
+     */
     protected function setupConsumer()
     {
         if ($this->autoSetupFabric) {
@@ -76,7 +80,7 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
         //To be implemented by descendant classes
     }
 
-    protected function maybeStopConsumer()
+    protected function maybeStopConsumer(): void
     {
         if (extension_loaded('pcntl') && (defined('AMQP_WITHOUT_SIGNALS') ? !AMQP_WITHOUT_SIGNALS : true)) {
             if (!function_exists('pcntl_signal_dispatch')) {
@@ -91,17 +95,17 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
         }
     }
 
-    public function setConsumerTag($tag)
+    public function setConsumerTag(string $tag): void
     {
         $this->consumerTag = $tag;
     }
 
-    public function getConsumerTag()
+    public function getConsumerTag(): ?string
     {
         return $this->consumerTag;
     }
 
-    public function forceStopConsumer()
+    public function forceStopConsumer(): void
     {
         $this->forceStop = true;
     }
@@ -109,42 +113,34 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
     /**
      * Sets the qos settings for the current channel
      * Consider that prefetchSize and global do not work with rabbitMQ version <= 8.0
-     *
-     * @param int $prefetchSize
-     * @param int $prefetchCount
-     * @param bool $global
      */
-    public function setQosOptions($prefetchSize = 0, $prefetchCount = 0, $global = false)
+    public function setQosOptions(int $prefetchSize = 0, int $prefetchCount = 0, bool $global = false): void
     {
         $this->getChannel()->basic_qos($prefetchSize, $prefetchCount, $global);
     }
 
-    public function setIdleTimeout($idleTimeout)
+    public function setIdleTimeout($idleTimeout): void
     {
         $this->idleTimeout = $idleTimeout;
     }
 
     /**
      * Set exit code to be returned when there is a timeout exception
-     *
-     * @param int|null $idleTimeoutExitCode
      */
-    public function setIdleTimeoutExitCode($idleTimeoutExitCode)
+    public function setIdleTimeoutExitCode(?int $idleTimeoutExitCode = null): void
     {
         $this->idleTimeoutExitCode = $idleTimeoutExitCode;
     }
 
-    public function getIdleTimeout()
+    public function getIdleTimeout(): int
     {
         return $this->idleTimeout;
     }
 
     /**
      * Get exit code to be returned when there is a timeout exception
-     *
-     * @return int|null
      */
-    public function getIdleTimeoutExitCode()
+    public function getIdleTimeoutExitCode(): ?int
     {
         return $this->idleTimeoutExitCode;
     }
@@ -153,7 +149,7 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
      * Resets the consumed property.
      * Use when you want to call start() or consume() multiple times.
      */
-    public function resetConsumed()
+    public function resetConsumed(): void
     {
         $this->consumed = 0;
     }

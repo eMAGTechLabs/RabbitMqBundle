@@ -18,9 +18,6 @@ interface QueueOptionsProviderInterface
      *   'durable' => true,
      *   'routing_keys' => array('key.*')
      * )
-     * 
-     * @return array
-     * 
      */
-    public function getQueueOptions($context = null);
+    public function getQueueOptions(?string $context = null): array;
 }

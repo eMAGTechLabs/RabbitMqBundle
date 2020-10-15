@@ -237,12 +237,8 @@ abstract class BaseAmqp
 
     /**
      * Binds queue to an exchange
-     *
-     * @param string $queue
-     * @param string $exchange
-     * @param string $routing_key
      */
-    protected function queueBind($queue, $exchange, $routing_key, array $arguments = array())
+    protected function queueBind(string $queue, string $exchange, string $routing_key, array $arguments = array()): void
     {
         // queue binding is not permitted on the default exchange
         if ('' !== $exchange) {
@@ -250,23 +246,14 @@ abstract class BaseAmqp
         }
     }
 
-    /**
-     * @param EventDispatcherInterface $eventDispatcher
-     *
-     * @return BaseAmqp
-     */
-    public function setEventDispatcher(EventDispatcherInterface $eventDispatcher)
+    public function setEventDispatcher(EventDispatcherInterface $eventDispatcher): BaseAmqp
     {
         $this->eventDispatcher = $eventDispatcher;
 
         return $this;
     }
 
-    /**
-     * @param string $eventName
-     * @param AMQPEvent  $event
-     */
-    protected function dispatchEvent($eventName, AMQPEvent $event)
+    protected function dispatchEvent(string $eventName, AMQPEvent $event): void
     {
         if ($this->getEventDispatcher() instanceof ContractsEventDispatcherInterface) {
             $this->getEventDispatcher()->dispatch(
@@ -276,10 +263,7 @@ abstract class BaseAmqp
         }
     }
 
-    /**
-     * @return EventDispatcherInterface|null
-     */
-    public function getEventDispatcher()
+    public function getEventDispatcher(): ?EventDispatcherInterface
     {
         return $this->eventDispatcher;
     }

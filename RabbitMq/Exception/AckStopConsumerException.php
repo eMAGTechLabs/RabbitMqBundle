@@ -7,7 +7,7 @@ use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
 
 class AckStopConsumerException extends StopConsumerException
 {
-    public function getHandleCode()
+    public function getHandleCode(): int
     {
         return ConsumerInterface::MSG_ACK;
     }

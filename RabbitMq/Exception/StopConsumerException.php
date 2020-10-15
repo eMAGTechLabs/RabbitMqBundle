@@ -12,7 +12,7 @@ use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
  */
 class StopConsumerException extends \RuntimeException
 {
-    public function getHandleCode()
+    public function getHandleCode(): int
     {
         return ConsumerInterface::MSG_SINGLE_NACK_REQUEUE;
     }

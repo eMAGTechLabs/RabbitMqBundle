@@ -16,7 +16,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
      */
     protected $consumer;
 
-    public function stopConsumer()
+    public function stopConsumer(): void
     {
         if ($this->consumer instanceof BatchConsumer) {
             // Process current message, then halt consumer
@@ -79,10 +79,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
         return $this->consumer->consume();
     }
 
-    /**
-     * @param   InputInterface  $input
-     */
-    protected function initConsumer(InputInterface $input)
+    protected function initConsumer(InputInterface $input): void
     {
         $this->consumer = $this->getContainer()
             ->get(sprintf($this->getConsumerService(), $input->getArgument('name')));
@@ -96,10 +93,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
         $this->consumer->setRoutingKey($input->getOption('route'));
     }
 
-    /**
-     * @return  string
-     */
-    protected function getConsumerService()
+    protected function getConsumerService(): string
     {
         return 'old_sound_rabbit_mq.%s_batch';
     }

@@ -21,14 +21,13 @@ class Configuration implements ConfigurationInterface
     /**
      * Configuration constructor.
      *
-     * @param   string  $name
      */
-    public function __construct($name)
+    public function __construct(string $name)
     {
         $this->name = $name;
     }
 
-    public function getConfigTreeBuilder()
+    public function getConfigTreeBuilder(): TreeBuilder
     {
         $tree = new TreeBuilder($this->name);
         /** @var ArrayNodeDefinition $rootNode */
@@ -56,7 +55,7 @@ class Configuration implements ConfigurationInterface
         return $tree;
     }
 
-    protected function addConnections(ArrayNodeDefinition $node)
+    protected function addConnections(ArrayNodeDefinition $node): void
     {
         $node
             ->fixXmlConfig('connection')
@@ -91,7 +90,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
 
-    protected function addProducers(ArrayNodeDefinition $node)
+    protected function addProducers(ArrayNodeDefinition $node): void
     {
         $node
             ->fixXmlConfig('producer')
@@ -115,7 +114,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
 
-    protected function addBindings(ArrayNodeDefinition $node)
+    protected function addBindings(ArrayNodeDefinition $node): void
     {
         $node
             ->fixXmlConfig('binding')
@@ -139,7 +138,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
 
-    protected function addConsumers(ArrayNodeDefinition $node)
+    protected function addConsumers(ArrayNodeDefinition $node): void
     {
         $node
             ->fixXmlConfig('consumer')
@@ -179,7 +178,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
 
-    protected function addMultipleConsumers(ArrayNodeDefinition $node)
+    protected function addMultipleConsumers(ArrayNodeDefinition $node): void
     {
         $node
             ->fixXmlConfig('multiple_consumer')
@@ -218,7 +217,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
     
-    protected function addDynamicConsumers(ArrayNodeDefinition $node)
+    protected function addDynamicConsumers(ArrayNodeDefinition $node): void
     {
         $node
             ->fixXmlConfig('dynamic_consumer')
@@ -258,12 +257,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
 
-    /**
-     * @param   ArrayNodeDefinition     $node
-     *
-     * @return  void
-     */
-    protected function addBatchConsumers(ArrayNodeDefinition $node)
+    protected function addBatchConsumers(ArrayNodeDefinition $node): void
     {
         $node
             ->children()
@@ -302,7 +296,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
 
-    protected function addAnonConsumers(ArrayNodeDefinition $node)
+    protected function addAnonConsumers(ArrayNodeDefinition $node): void
     {
         $node
             ->fixXmlConfig('anon_consumer')
@@ -322,7 +316,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
 
-    protected function addRpcClients(ArrayNodeDefinition $node)
+    protected function addRpcClients(ArrayNodeDefinition $node): void
     {
         $node
             ->fixXmlConfig('rpc_client')
@@ -344,7 +338,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
 
-    protected function addRpcServers(ArrayNodeDefinition $node)
+    protected function addRpcServers(ArrayNodeDefinition $node): void
     {
         $node
             ->fixXmlConfig('rpc_server')
@@ -375,7 +369,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
 
-    protected function getExchangeConfiguration()
+    protected function getExchangeConfiguration(): ArrayNodeDefinition
     {
         $node = new ArrayNodeDefinition('exchange_options');
 
@@ -395,7 +389,7 @@ class Configuration implements ConfigurationInterface
         ;
     }
 
-    protected function getQueueConfiguration()
+    protected function getQueueConfiguration(): ArrayNodeDefinition
     {
         $node = new ArrayNodeDefinition('queue_options');
 
@@ -404,7 +398,7 @@ class Configuration implements ConfigurationInterface
         return $node;
     }
 
-    protected function getMultipleQueuesConfiguration()
+    protected function getMultipleQueuesConfiguration(): ArrayNodeDefinition
     {
         $node = new ArrayNodeDefinition('queues');
         $prototypeNode = $node->prototype('array');
@@ -420,7 +414,7 @@ class Configuration implements ConfigurationInterface
         return $node;
     }
 
-    protected function addQueueNodeConfiguration(ArrayNodeDefinition $node)
+    protected function addQueueNodeConfiguration(ArrayNodeDefinition $node): void
     {
         $node
             ->fixXmlConfig('routing_key')

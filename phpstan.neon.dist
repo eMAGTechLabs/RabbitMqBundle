@@ -2,8 +2,9 @@ includes:
 	- vendor/phpstan/phpstan-phpunit/extension.neon
 	- vendor/phpstan/phpstan-phpunit/rules.neon
 parameters:
-    level: 5
+    level: 6
     reportUnmatchedIgnoredErrors: false
+    checkMissingIterableValueType: false
     paths:
         - Command
         - DataCollector
@@ -21,3 +22,5 @@ parameters:
         - '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface::((booleanNode)|(scalarNode))\(\)#'
         - '#Parameter \#1 \$node of method OldSound\\RabbitMqBundle\\DependencyInjection\\Configuration::addQueueNodeConfiguration\(\) expects Symfony\\Component\\Config\\Definition\\Builder\\ArrayNodeDefinition, Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition given\.#'
         - '#Method Symfony\\Contracts\\EventDispatcher\\EventDispatcherInterface::dispatch\(\) invoked with 2 parameters, 1 required\.#'
+        - '#Method OldSound\\RabbitMqBundle\\Command\\.*::configure\(\) has no return typehint specified\.#'
+        - '#Call to an undefined method OldSound\\RabbitMqBundle\\RabbitMq\\BaseConsumer::(setContext|consume)\(\)\.#'

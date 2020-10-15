@@ -11,7 +11,7 @@ class ConsumerCommand extends BaseConsumerCommand
         $this->setName('rabbitmq:consumer');
     }
 
-    protected function getConsumerService()
+    protected function getConsumerService(): string
     {
         return 'old_sound_rabbit_mq.%s_consumer';
     }
