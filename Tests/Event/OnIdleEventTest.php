@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
  */
 class OnIdleEventTest extends TestCase
 {
-    protected function getConsumer()
+    protected function getConsumer(): Consumer
     {
         return new Consumer(
             $this->getMockBuilder('\PhpAmqpLib\Connection\AMQPConnection')
@@ -25,7 +25,7 @@ class OnIdleEventTest extends TestCase
         );
     }
 
-    public function testShouldAllowGetConsumerSetInConstructor()
+    public function testShouldAllowGetConsumerSetInConstructor(): void
     {
         $consumer = $this->getConsumer();
         $event = new OnIdleEvent($consumer);
@@ -33,7 +33,7 @@ class OnIdleEventTest extends TestCase
         $this->assertSame($consumer, $event->getConsumer());
     }
 
-    public function testShouldSetForceStopToTrueInConstructor()
+    public function testShouldSetForceStopToTrueInConstructor(): void
     {
         $consumer = $this->getConsumer();
         $event = new OnIdleEvent($consumer);
@@ -41,7 +41,7 @@ class OnIdleEventTest extends TestCase
         $this->assertTrue($event->isForceStop());
     }
 
-    public function testShouldReturnPreviouslySetForceStop()
+    public function testShouldReturnPreviouslySetForceStop(): void
     {
         $consumer = $this->getConsumer();
         $event = new OnIdleEvent($consumer);

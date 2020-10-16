@@ -51,8 +51,11 @@ class MultipleConsumerTest extends TestCase
      * Check if the message is requeued or not correctly.
      *
      * @dataProvider processMessageProvider
+     *
+     * @param int|bool|null $processFlag
+     * @throws \Exception
      */
-    public function testProcessMessage($processFlag, $expectedMethod, $expectedRequeue = null)
+    public function testProcessMessage($processFlag, string $expectedMethod, bool $expectedRequeue = null): void
     {
         $callback = $this->prepareCallback($processFlag);
 
@@ -78,8 +81,11 @@ class MultipleConsumerTest extends TestCase
      * Check queues provider works well
      *
      * @dataProvider processMessageProvider
+     *
+     * @param int|bool|null $processFlag
+     * @throws \ReflectionException
      */
-    public function testQueuesProvider($processFlag, $expectedMethod, $expectedRequeue = null)
+    public function testQueuesProvider($processFlag, string $expectedMethod, bool $expectedRequeue = null): void
     {
         $callback = $this->prepareCallback($processFlag);
 
@@ -115,7 +121,7 @@ class MultipleConsumerTest extends TestCase
         $this->multipleConsumer->processQueueMessage('test-2', $amqpMessage);
     }
 
-    public function testQueuesPrivider()
+    public function testQueuesPrivider(): void
     {
         $amqpConnection = $this->prepareAMQPConnection();
         $amqpChannel = $this->prepareAMQPChannel();
@@ -142,8 +148,10 @@ class MultipleConsumerTest extends TestCase
      * Check queues provider works well with static queues together
      *
      * @dataProvider processMessageProvider
+     *
+     * @param int|bool|null $processFlag
      */
-    public function testQueuesProviderAndStaticQueuesTogether($processFlag, $expectedMethod, $expectedRequeue = null)
+    public function testQueuesProviderAndStaticQueuesTogether($processFlag, string $expectedMethod, bool $expectedRequeue = null): void
     {
         $callback = $this->prepareCallback($processFlag);
 
@@ -188,7 +196,7 @@ class MultipleConsumerTest extends TestCase
         $this->multipleConsumer->processQueueMessage('test-4', $amqpMessage);
     }
 
-    public function processMessageProvider()
+    public function processMessageProvider(): array
     {
         return array(
             array(null, 'basic_ack'), // Remove message from queue only if callback return not false
@@ -202,8 +210,10 @@ class MultipleConsumerTest extends TestCase
 
     /**
      * @dataProvider queueBindingRoutingKeyProvider
+     *
+     * @param array $routingKeysOption
      */
-    public function testShouldConsiderQueueArgumentsOnQueueDeclaration($routingKeysOption, $expectedRoutingKey)
+    public function testShouldConsiderQueueArgumentsOnQueueDeclaration($routingKeysOption, $expectedRoutingKey): void
     {
         $queueName = 'test-queue-name';
         $exchangeName = 'test-exchange-name';
@@ -244,7 +254,7 @@ class MultipleConsumerTest extends TestCase
         $this->multipleConsumer->setupFabric();
     }
 
-    public function queueBindingRoutingKeyProvider()
+    public function queueBindingRoutingKeyProvider(): array
     {
         return array(
             array(array(), 'test-routing-key'),
@@ -291,11 +301,10 @@ class MultipleConsumerTest extends TestCase
      * Preparing AMQP Channel Expectations
      *
      * @param mixed $expectedMethod
-     * @param string $expectedRequeue
+     * @param bool $expectedRequeue
      *
-     * @return void
      */
-    private function prepareAMQPChannelExpectations($expectedMethod, $expectedRequeue)
+    private function prepareAMQPChannelExpectations($expectedMethod, $expectedRequeue): void
     {
         $this->amqpChannel->expects($this->any())
             ->method('basic_reject')
@@ -314,10 +323,9 @@ class MultipleConsumerTest extends TestCase
     /**
      * Prepare callback
      *
-     * @param bool $processFlag
      * @return callable
      */
-    private function prepareCallback($processFlag)
+    private function prepareCallback(?int $processFlag)
     {
         return function ($msg) use ($processFlag) {
             return $processFlag;

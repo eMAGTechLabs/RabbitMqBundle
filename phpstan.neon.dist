@@ -24,3 +24,4 @@ parameters:
         - '#Method Symfony\\Contracts\\EventDispatcher\\EventDispatcherInterface::dispatch\(\) invoked with 2 parameters, 1 required\.#'
         - '#Method OldSound\\RabbitMqBundle\\Command\\.*::configure\(\) has no return typehint specified\.#'
         - '#Call to an undefined method OldSound\\RabbitMqBundle\\RabbitMq\\BaseConsumer::(setContext|consume)\(\)\.#'
+        - '#Property PhpAmqpLib\\Channel\\AMQPChannel::\$callbacks \(array\<callable\(\): mixed\>\) does not accept array\(#'

@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 class RpcServerTest extends TestCase
 {
-    public function testProcessMessageWithCustomSerializer()
+    public function testProcessMessageWithCustomSerializer(): void
     {
         /** @var RpcServer $server */
         $server = $this->getMockBuilder('\OldSound\RabbitMqBundle\RabbitMq\RpcServer')

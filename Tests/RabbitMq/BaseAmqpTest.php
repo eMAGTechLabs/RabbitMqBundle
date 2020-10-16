@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 class BaseAmqpTest extends TestCase
 {
 
-    public function testLazyConnection()
+    public function testLazyConnection(): void
     {
         $connection = $this->getMockBuilder('PhpAmqpLib\Connection\AbstractConnection')
             ->disableOriginalConstructor()
@@ -28,7 +28,7 @@ class BaseAmqpTest extends TestCase
         new Consumer($connection, null);
     }
 
-    public function testNotLazyConnection()
+    public function testNotLazyConnection(): void
     {
         $connection = $this->getMockBuilder('PhpAmqpLib\Connection\AbstractConnection')
             ->disableOriginalConstructor()
@@ -44,7 +44,7 @@ class BaseAmqpTest extends TestCase
         new Consumer($connection, null);
     }
 
-    public function testDispatchEvent()
+    public function testDispatchEvent(): void
     {
         /** @var BaseAmqp|MockObject $baseAmqpConsumer */
         $baseAmqpConsumer = $this->getMockBuilder('OldSound\RabbitMqBundle\RabbitMq\BaseAmqp')

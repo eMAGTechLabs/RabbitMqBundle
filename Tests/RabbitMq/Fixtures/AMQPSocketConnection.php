@@ -6,6 +6,7 @@ use PhpAmqpLib\Connection\AMQPSocketConnection as BaseAMQPSocketConnection;
 
 class AMQPSocketConnection extends BaseAMQPSocketConnection
 {
+    /** @var array */
     public $constructParams;
 
     public function __construct()

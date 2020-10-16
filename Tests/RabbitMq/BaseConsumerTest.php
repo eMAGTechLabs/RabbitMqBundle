@@ -21,31 +21,31 @@ class BaseConsumerTest extends TestCase
             ->getMockForAbstractClass();
     }
 
-    public function testItExtendsBaseAmqpInterface()
+    public function testItExtendsBaseAmqpInterface(): void
     {
         $this->assertInstanceOf('OldSound\RabbitMqBundle\RabbitMq\BaseAmqp', $this->consumer);
     }
 
-    public function testItImplementsDequeuerInterface()
+    public function testItImplementsDequeuerInterface(): void
     {
         $this->assertInstanceOf('OldSound\RabbitMqBundle\RabbitMq\DequeuerInterface', $this->consumer);
     }
 
-    public function testItsIdleTimeoutIsMutable()
+    public function testItsIdleTimeoutIsMutable(): void
     {
         $this->assertEquals(0, $this->consumer->getIdleTimeout());
         $this->consumer->setIdleTimeout(42);
         $this->assertEquals(42, $this->consumer->getIdleTimeout());
     }
 
-    public function testItsIdleTimeoutExitCodeIsMutable()
+    public function testItsIdleTimeoutExitCodeIsMutable(): void
     {
         $this->assertEquals(0, $this->consumer->getIdleTimeoutExitCode());
         $this->consumer->setIdleTimeoutExitCode(43);
         $this->assertEquals(43, $this->consumer->getIdleTimeoutExitCode());
     }
 
-    public function testForceStopConsumer()
+    public function testForceStopConsumer(): void
     {
         $this->assertAttributeEquals(false, 'forceStop', $this->consumer);
         $this->consumer->forceStopConsumer();

@@ -116,7 +116,7 @@ abstract class BaseAmqp
         $this->conn->reconnect();
     }
 
-    public function getChannel(): AMQPChannel
+    public function getChannel(): ?AMQPChannel
     {
         if (empty($this->ch) || empty($this->ch->getChannelId())) {
             $this->ch = $this->conn->channel();

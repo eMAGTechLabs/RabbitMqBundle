@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 class OldSoundRabbitMqExtensionTest extends TestCase
 {
-    public function testFooConnectionDefinition()
+    public function testFooConnectionDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -40,7 +40,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.connection.class%', $definition->getClass());
     }
 
-    public function testSslConnectionDefinition()
+    public function testSslConnectionDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -69,7 +69,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.connection.class%', $definition->getClass());
     }
 
-    public function testLazyConnectionDefinition()
+    public function testLazyConnectionDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -96,7 +96,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.lazy.connection.class%', $definition->getClass());
     }
 
-    public function testDefaultConnectionDefinition()
+    public function testDefaultConnectionDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -123,7 +123,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.connection.class%', $definition->getClass());
     }
 
-    public function testSocketConnectionDefinition()
+    public function testSocketConnectionDefinition(): void
     {
         $container = $this->getContainer('test.yml');
         $this->assertTrue($container->has('old_sound_rabbit_mq.connection.socket_connection'));
@@ -132,7 +132,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.socket_connection.class%', $definiton->getClass());
     }
 
-    public function testLazySocketConnectionDefinition()
+    public function testLazySocketConnectionDefinition(): void
     {
         $container = $this->getContainer('test.yml');
         $this->assertTrue($container->has('old_sound_rabbit_mq.connection.lazy_socket'));
@@ -141,7 +141,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.lazy.socket_connection.class%', $definiton->getClass());
     }
 
-    public function testFooBinding()
+    public function testFooBinding(): void
     {
         $container = $this->getContainer('test.yml');
         $binding = array(
@@ -163,7 +163,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertBindingMethodCalls($definition, $binding);
     }
 
-    public function testMooBinding()
+    public function testMooBinding(): void
     {
         $container = $this->getContainer('test.yml');
         $binding = array(
@@ -185,7 +185,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertBindingMethodCalls($definition, $binding);
     }
 
-    protected function assertBindingMethodCalls(Definition $definition, $binding)
+    protected function assertBindingMethodCalls(Definition $definition, array $binding): void
     {
         $this->assertEquals(array(
             array(
@@ -228,7 +228,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
             $definition->getMethodCalls()
         );
     }
-    public function testFooProducerDefinition()
+    public function testFooProducerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -272,7 +272,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
     /**
      * @group alias
      */
-    public function testAliasedFooProducerDefinition()
+    public function testAliasedFooProducerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -280,7 +280,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertTrue($container->has('foo_producer_alias'));
     }
 
-    public function testDefaultProducerDefinition()
+    public function testDefaultProducerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -321,7 +321,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.producer.class%', $definition->getClass());
     }
 
-    public function testFooConsumerDefinition()
+    public function testFooConsumerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -374,7 +374,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.consumer.class%', $definition->getClass());
     }
 
-    public function testDefaultConsumerDefinition()
+    public function testDefaultConsumerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -427,7 +427,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.consumer.class%', $definition->getClass());
     }
 
-    public function testConsumerWithQosOptions()
+    public function testConsumerWithQosOptions(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -453,7 +453,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         );
     }
 
-    public function testMultipleConsumerDefinition()
+    public function testMultipleConsumerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -524,7 +524,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         );
     }
 
-    public function testDynamicConsumerDefinition()
+    public function testDynamicConsumerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -567,7 +567,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         );
     }
 
-    public function testFooAnonConsumerDefinition()
+    public function testFooAnonConsumerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -603,7 +603,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.anon_consumer.class%', $definition->getClass());
     }
 
-    public function testDefaultAnonConsumerDefinition()
+    public function testDefaultAnonConsumerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -639,7 +639,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.anon_consumer.class%', $definition->getClass());
     }
 
-    public function testFooRpcClientDefinition()
+    public function testFooRpcClientDefinition(): void
     {
         $container = $this->getContainer('rpc-clients.yml');
 
@@ -658,7 +658,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.rpc_client.class%', $definition->getClass());
     }
 
-    public function testDefaultRpcClientDefinition()
+    public function testDefaultRpcClientDefinition(): void
     {
         $container = $this->getContainer('rpc-clients.yml');
 
@@ -678,7 +678,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.rpc_client.class%', $definition->getClass());
     }
 
-    public function testLazyRpcClientDefinition()
+    public function testLazyRpcClientDefinition(): void
     {
         $container = $this->getContainer('rpc-clients.yml');
 
@@ -698,7 +698,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.rpc_client.class%', $definition->getClass());
     }
 
-    public function testFooRpcServerDefinition()
+    public function testFooRpcServerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -716,7 +716,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.rpc_server.class%', $definition->getClass());
     }
 
-    public function testDefaultRpcServerDefinition()
+    public function testDefaultRpcServerDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -734,7 +734,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.rpc_server.class%', $definition->getClass());
     }
 
-    public function testRpcServerWithQueueOptionsDefinition()
+    public function testRpcServerWithQueueOptionsDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -764,7 +764,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.rpc_server.class%', $definition->getClass());
     }
 
-    public function testRpcServerWithExchangeOptionsDefinition()
+    public function testRpcServerWithExchangeOptionsDefinition(): void
     {
         $container = $this->getContainer('test.yml');
 
@@ -794,7 +794,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals('%old_sound_rabbit_mq.rpc_server.class%', $definition->getClass());
     }
 
-    public function testHasCollectorWhenChannelsExist()
+    public function testHasCollectorWhenChannelsExist(): void
     {
         $container = $this->getContainer('collector.yml');
 
@@ -809,19 +809,19 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         );
     }
 
-    public function testHasNoCollectorWhenNoChannelsExist()
+    public function testHasNoCollectorWhenNoChannelsExist(): void
     {
         $container = $this->getContainer('no_collector.yml');
         $this->assertFalse($container->has('old_sound_rabbit_mq.data_collector'));
     }
 
-    public function testCollectorCanBeDisabled()
+    public function testCollectorCanBeDisabled(): void
     {
         $container = $this->getContainer('collector_disabled.yml');
         $this->assertFalse($container->has('old_sound_rabbit_mq.data_collector'));
     }
 
-    public function testExchangeArgumentsAreArray()
+    public function testExchangeArgumentsAreArray(): void
     {
         $container = $this->getContainer('exchange_arguments.yml');
 
@@ -838,7 +838,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals(array('name' => 'bar'), $options[0]['arguments']);
     }
 
-    public function testProducerWithoutExplicitExchangeOptionsConnectsToAMQPDefault()
+    public function testProducerWithoutExplicitExchangeOptionsConnectsToAMQPDefault(): void
     {
         $container = $this->getContainer('no_exchange_options.yml');
 
@@ -853,7 +853,7 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         $this->assertEquals(true, $options[0]['passive']);
     }
 
-    public function testProducersWithLogger()
+    public function testProducersWithLogger(): void
     {
         $container = $this->getContainer('config_with_enable_logger.yml');
         $definition = $container->getDefinition('old_sound_rabbit_mq.default_consumer_consumer');
@@ -862,7 +862,10 @@ class OldSoundRabbitMqExtensionTest extends TestCase
         );
     }
 
-    private function getContainer($file, $debug = false)
+    /**
+     * @throws \Exception
+     */
+    private function getContainer(string $file, bool $debug = false): ContainerBuilder
     {
         $container = new ContainerBuilder(new ParameterBag(array('kernel.debug' => $debug)));
         $container->registerExtension(new OldSoundRabbitMqExtension());

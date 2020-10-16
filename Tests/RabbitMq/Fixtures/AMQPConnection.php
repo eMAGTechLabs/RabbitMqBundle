@@ -4,6 +4,7 @@ namespace OldSound\RabbitMqBundle\Tests\RabbitMq\Fixtures;
 
 class AMQPConnection
 {
+    /** @var array */
     public $constructParams;
 
     public function __construct()

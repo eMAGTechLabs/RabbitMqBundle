@@ -55,8 +55,10 @@ class AMQPConnectionFactory
 
     /**
      * Creates the appropriate connection using current parameters.
+     *
+     * @return AbstractConnection
      */
-    public function createConnection(): AbstractConnection
+    public function createConnection()
     {
         $ref = new \ReflectionClass($this->class);
 

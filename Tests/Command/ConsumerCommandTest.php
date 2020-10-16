@@ -28,7 +28,7 @@ class ConsumerCommandTest extends BaseCommandTest
     /**
      * testInputsDefinitionCommand
      */
-    public function testInputsDefinitionCommand()
+    public function testInputsDefinitionCommand(): void
     {
         $definition = $this->command->getDefinition();
         // check argument
