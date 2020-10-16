@@ -108,12 +108,18 @@ class RpcClient extends BaseAmqp
         return $this->queueName;
     }
 
-    public function setUnserializer(string $unserializer): void
+    /**
+     * @param callable $unserializer
+     */
+    public function setUnserializer($unserializer): void
     {
         $this->unserializer = $unserializer;
     }
 
-    public function notify(string $callback): void
+    /**
+     * @param mixed $callback
+     */
+    public function notify($callback): void
     {
         if (is_callable($callback)) {
             $this->notifyCallback = $callback;

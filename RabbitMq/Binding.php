@@ -34,98 +34,62 @@ class Binding extends BaseAmqp
      */
     protected $arguments;
 
-    /**
-     * @return string
-     */
-    public function getExchange()
+     public function getExchange(): string
     {
         return $this->exchange;
     }
 
-    /**
-     * @param string $exchange
-     */
-    public function setExchange($exchange)
+     public function setExchange(string $exchange): void
     {
         $this->exchange = $exchange;
     }
 
-    /**
-     * @return string
-     */
-    public function getDestination()
+    public function getDestination(): string
     {
         return $this->destination;
     }
 
-    /**
-     * @param string $destination
-     */
-    public function setDestination($destination)
+    public function setDestination(string $destination): void
     {
         $this->destination = $destination;
     }
 
-    /**
-     * @return bool
-     */
-    public function getDestinationIsExchange()
+    public function getDestinationIsExchange(): bool
     {
         return $this->destinationIsExchange;
     }
 
-    /**
-     * @param bool $destinationIsExchange
-     */
-    public function setDestinationIsExchange($destinationIsExchange)
+    public function setDestinationIsExchange(bool $destinationIsExchange): void
     {
         $this->destinationIsExchange = $destinationIsExchange;
     }
 
-    /**
-     * @return string
-     */
-    public function getRoutingKey()
+    public function getRoutingKey(): string
     {
         return $this->routingKey;
     }
 
-    /**
-     * @param string $routingKey
-     */
-    public function setRoutingKey($routingKey)
+    public function setRoutingKey(string $routingKey): void
     {
         $this->routingKey = $routingKey;
     }
 
-    /**
-     * @return boolean
-     */
-    public function isNowait()
+    public function isNowait(): bool
     {
         return $this->nowait;
     }
 
-    /**
-     * @param boolean $nowait
-     */
-    public function setNowait($nowait)
+    public function setNowait(bool $nowait): void
     {
         $this->nowait = $nowait;
     }
 
-    /**
-     * @return array
-     */
-    public function getArguments()
+    public function getArguments(): array
     {
         return $this->arguments;
     }
 
-    /**
-     * @param array $arguments
-     */
-    public function setArguments($arguments)
+    public function setArguments(array $arguments): void
     {
         $this->arguments = $arguments;
     }
@@ -133,10 +97,8 @@ class Binding extends BaseAmqp
 
     /**
      * create bindings
-     *
-     * @return void
      */
-    public function setupFabric()
+    public function setupFabric(): void
     {
         $method  = ($this->destinationIsExchange) ? 'exchange_bind' : 'queue_bind';
         $channel = $this->getChannel();

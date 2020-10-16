@@ -12,13 +12,21 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface as ContractsEvent
 
 abstract class BaseAmqp
 {
+    /** @var AbstractConnection */
     protected $conn;
+    /** @var AMQPChannel|null */
     protected $ch;
+    /** @var string|null */
     protected $consumerTag;
+    /** @var bool */
     protected $exchangeDeclared = false;
+    /** @var bool */
     protected $queueDeclared = false;
+    /** @var string */
     protected $routingKey = '';
+    /** @var bool */
     protected $autoSetupFabric = true;
+    /** @var array */
     protected $basicProperties = array('content_type' => 'text/plain', 'delivery_mode' => 2);
 
     /**
@@ -26,6 +34,7 @@ abstract class BaseAmqp
      */
     protected $logger;
 
+    /** @var array */
     protected $exchangeOptions = array(
         'passive' => false,
         'durable' => true,
@@ -37,6 +46,7 @@ abstract class BaseAmqp
         'declare' => true,
     );
 
+    /** @var array */
     protected $queueOptions = array(
         'name' => '',
         'passive' => false,
@@ -78,7 +88,7 @@ abstract class BaseAmqp
         $this->close();
     }
 
-    public function close()
+    public function close(): void
     {
         if ($this->ch) {
             try {
@@ -88,7 +98,7 @@ abstract class BaseAmqp
             }
         }
 
-        if ($this->conn && $this->conn->isConnected()) {
+        if (!empty($this->conn) && $this->conn->isConnected()) {
             try {
                 $this->conn->close();
             } catch (\Exception $e) {
@@ -97,7 +107,7 @@ abstract class BaseAmqp
         }
     }
 
-    public function reconnect()
+    public function reconnect(): void
     {
         if (!$this->conn->isConnected()) {
             return;
@@ -106,34 +116,24 @@ abstract class BaseAmqp
         $this->conn->reconnect();
     }
 
-    /**
-     * @return AMQPChannel
-     */
-    public function getChannel()
+    public function getChannel(): AMQPChannel
     {
-        if (empty($this->ch) || null === $this->ch->getChannelId()) {
+        if (empty($this->ch) || empty($this->ch->getChannelId())) {
             $this->ch = $this->conn->channel();
         }
 
         return $this->ch;
     }
 
-    /**
-     * @param  AMQPChannel $ch
-     *
-     * @return void
-     */
-    public function setChannel(AMQPChannel $ch)
+    public function setChannel(AMQPChannel $ch): void
     {
         $this->ch = $ch;
     }
 
     /**
      * @throws \InvalidArgumentException
-     * @param  array                     $options
-     * @return void
      */
-    public function setExchangeOptions(array $options = array())
+    public function setExchangeOptions(array $options = array()): void
     {
         if (!isset($options['name'])) {
             throw new \InvalidArgumentException('You must provide an exchange name');
@@ -146,25 +146,17 @@ abstract class BaseAmqp
         $this->exchangeOptions = array_merge($this->exchangeOptions, $options);
     }
 
-    /**
-     * @param  array $options
-     * @return void
-     */
-    public function setQueueOptions(array $options = array())
+    public function setQueueOptions(array $options = array()): void
     {
         $this->queueOptions = array_merge($this->queueOptions, $options);
     }
 
-    /**
-     * @param  string $routingKey
-     * @return void
-     */
-    public function setRoutingKey($routingKey)
+    public function setRoutingKey(string $routingKey): void
     {
         $this->routingKey = $routingKey;
     }
 
-    public function setupFabric()
+    public function setupFabric(): void
     {
         if (!$this->exchangeDeclared) {
             $this->exchangeDeclare();
@@ -178,15 +170,12 @@ abstract class BaseAmqp
     /**
      * disables the automatic SetupFabric when using a consumer or producer
      */
-    public function disableAutoSetupFabric()
+    public function disableAutoSetupFabric(): void
     {
         $this->autoSetupFabric = false;
     }
 
-    /**
-     * @param LoggerInterface $logger
-     */
-    public function setLogger($logger)
+    public function setLogger(LoggerInterface $logger): void
     {
         $this->logger = $logger;
     }
@@ -194,7 +183,7 @@ abstract class BaseAmqp
     /**
      * Declares exchange
      */
-    protected function exchangeDeclare()
+    protected function exchangeDeclare(): void
     {
         if ($this->exchangeOptions['declare']) {
             $this->getChannel()->exchange_declare(
@@ -215,7 +204,7 @@ abstract class BaseAmqp
     /**
      * Declares queue, creates if needed
      */
-    protected function queueDeclare()
+    protected function queueDeclare(): void
     {
         if ($this->queueOptions['declare']) {
             list($queueName, ,) = $this->getChannel()->queue_declare($this->queueOptions['name'], $this->queueOptions['passive'],

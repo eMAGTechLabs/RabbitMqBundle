@@ -4,6 +4,7 @@ namespace OldSound\RabbitMqBundle\RabbitMq;
 
 class AmqpPartsHolder
 {
+    /** @var array */
 	protected $parts;
 
 	public function __construct()
@@ -11,12 +12,12 @@ class AmqpPartsHolder
 		$this->parts = array();
 	}
 
-	public function addPart($type, BaseAmqp $part): void
+	public function addPart(string $type, BaseAmqp $part): void
 	{
 		$this->parts[$type][] = $part;
 	}
 
-	public function getParts($type): array
+	public function getParts(string $type): array
 	{
         $type = (string) $type;
 		return isset($this->parts[$type]) ? $this->parts[$type] : array();

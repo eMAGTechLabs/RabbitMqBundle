@@ -33,19 +33,19 @@ class DynamicConsumer extends Consumer{
         return $this;
     }
     
-    public function setContext($context)
+    public function setContext(string $context): void
     {
         $this->context = $context;
     }
 
 
-    protected function setupConsumer()
+    protected function setupConsumer(): void
     {   
         $this->mergeQueueOptions();
         parent::setupConsumer();
     }
     
-    protected function mergeQueueOptions()
+    protected function mergeQueueOptions(): void
     {
         if (null === $this->queueOptionsProvider) {
             return;

@@ -24,7 +24,10 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
     /** @var int */
     protected $idleTimeoutExitCode;
 
-    public function setCallback($callback)
+    /**
+     * @param callable $callback
+     */
+    public function setCallback($callback): void
     {
         $this->callback = $callback;
     }
@@ -55,19 +58,14 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
      * Tell the server you are going to stop consuming.
      *
      * It will finish up the last message and not send you any more.
-     *
-     * @return void
      */
-    public function stopConsuming()
+    public function stopConsuming(): void
     {
         // This gets stuck and will not exit without the last two parameters set.
         $this->getChannel()->basic_cancel($this->getConsumerTag(), false, true);
     }
 
-    /**
-     * @return void
-     */
-    protected function setupConsumer()
+    protected function setupConsumer(): void
     {
         if ($this->autoSetupFabric) {
             $this->setupFabric();
@@ -75,7 +73,7 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
         $this->getChannel()->basic_consume($this->queueOptions['name'], $this->getConsumerTag(), false, false, false, false, array($this, 'processMessage'));
     }
 
-    public function processMessage(AMQPMessage $msg)
+    public function processMessage(AMQPMessage $msg): void
     {
         //To be implemented by descendant classes
     }
@@ -119,7 +117,7 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
         $this->getChannel()->basic_qos($prefetchSize, $prefetchCount, $global);
     }
 
-    public function setIdleTimeout($idleTimeout): void
+    public function setIdleTimeout(int $idleTimeout): void
     {
         $this->idleTimeout = $idleTimeout;
     }

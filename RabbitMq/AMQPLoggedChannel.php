@@ -11,6 +11,7 @@ use PhpAmqpLib\Channel\AMQPChannel;
  */
 class AMQPLoggedChannel extends AMQPChannel
 {
+    /** @var array */
     private $basicPublishLog = array();
 
     public function basic_publish($msg, $exchange = '', $routingKey = '', $mandatory = false, $immediate = false, $ticket = NULL): void

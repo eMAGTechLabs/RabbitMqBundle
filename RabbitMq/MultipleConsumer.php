@@ -8,6 +8,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 class MultipleConsumer extends Consumer
 {
+    /** @var array */
     protected $queues = array();
 
     /**
@@ -26,33 +27,29 @@ class MultipleConsumer extends Consumer
 
     /**
      * QueuesProvider setter
-     *
-     * @param QueuesProviderInterface $queuesProvider
-     *
-     * @return self
      */
-    public function setQueuesProvider(QueuesProviderInterface $queuesProvider)
+    public function setQueuesProvider(QueuesProviderInterface $queuesProvider): MultipleConsumer
     {
         $this->queuesProvider = $queuesProvider;
         return $this;
     }
 
-    public function getQueueConsumerTag($queue)
+    public function getQueueConsumerTag(string $queue): string
     {
         return sprintf('%s-%s', $this->getConsumerTag(), $queue);
     }
 
-    public function setQueues(array $queues)
+    public function setQueues(array $queues): void
     {
         $this->queues = $queues;
     }
     
-    public function setContext($context)
+    public function setContext(string $context): void
     {
         $this->context = $context;
     }
 
-    protected function setupConsumer()
+    protected function setupConsumer(): void
     {
         $this->mergeQueues();
 
@@ -70,7 +67,7 @@ class MultipleConsumer extends Consumer
         }
     }
 
-    protected function queueDeclare()
+    protected function queueDeclare(): void
     {
         foreach ($this->queues as $name => $options) {
             list($queueName, ,) = $this->getChannel()->queue_declare($name, $options['passive'],
@@ -90,7 +87,10 @@ class MultipleConsumer extends Consumer
         $this->queueDeclared = true;
     }
 
-    public function processQueueMessage($queueName, AMQPMessage $msg)
+    /**
+     * @throws \Exception
+     */
+    public function processQueueMessage(string $queueName, AMQPMessage $msg): void
     {
         if (!isset($this->queues[$queueName])) {
             throw new QueueNotFoundException();
@@ -99,7 +99,7 @@ class MultipleConsumer extends Consumer
         $this->processMessageQueueCallback($msg, $queueName, $this->queues[$queueName]['callback']);
     }
 
-    public function stopConsuming()
+    public function stopConsuming(): void
     {
         foreach ($this->queues as $name => $options) {
             $this->getChannel()->basic_cancel($this->getQueueConsumerTag($name), false, true);
@@ -109,7 +109,7 @@ class MultipleConsumer extends Consumer
     /**
      * Merges static and provided queues into one array
      */
-    protected function mergeQueues()
+    protected function mergeQueues(): void
     {
         if ($this->queuesProvider) {
             $this->queues = array_merge(

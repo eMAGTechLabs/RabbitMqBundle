@@ -35,7 +35,10 @@ class RpcServer extends BaseConsumer
         $this->getChannel()->basic_publish($reply, '', $client);
     }
 
-    public function setSerializer(string $serializer): void
+    /**
+     * @param callable $serializer
+     */
+    public function setSerializer($serializer): void
     {
         $this->serializer = $serializer;
     }
