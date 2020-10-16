@@ -16,7 +16,6 @@ use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface as ContractsEventDispatcherInterface;
-use Symfony\Bridge\PhpUnit\ClockMock;
 
 class ConsumerTest extends TestCase
 {
@@ -384,7 +383,7 @@ class ConsumerTest extends TestCase
 
         $amqpChannel->expects($this->exactly(2))
             ->method('wait')
-            ->with(null, false, 30)
+            ->with(null, false, $this->LessThanOrEqual($consumer->getTimeoutWait()) )
             ->willReturnCallback(function ($allowedMethods, $nonBlocking, $waitTimeout) use ($consumer) {
                 // ensure max execution date time "counts down"
                 $consumer->setGracefulMaxExecutionDateTime(
@@ -425,7 +424,7 @@ class ConsumerTest extends TestCase
 
         $amqpChannel->expects($this->once())
             ->method('wait')
-            ->with(null, false, 10)
+            ->with(null, false, $consumer->getGracefulMaxExecutionDateTime()->diff(new \DateTime())->s)
             ->willReturnCallback(function ($allowedMethods, $nonBlocking, $waitTimeout) use ($consumer) {
                 // simulate time passing by moving the max execution date time
                 $consumer->setGracefulMaxExecutionDateTimeFromSecondsInTheFuture($waitTimeout * -1);
