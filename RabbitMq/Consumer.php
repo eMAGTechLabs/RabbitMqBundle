@@ -310,7 +310,7 @@ class Consumer extends BaseConsumer
             $waitTimeout = $this->getIdleTimeout();
         }
 
-        if ($this->getTimeoutWait()) {
+        if (!is_null($this->getTimeoutWait()) && $this->getTimeoutWait() > 0) {
             $waitTimeout = min($waitTimeout, $this->getTimeoutWait());
         }
         return $waitTimeout;
