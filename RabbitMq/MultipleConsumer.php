@@ -70,7 +70,7 @@ class MultipleConsumer extends Consumer
     protected function queueDeclare(): void
     {
         foreach ($this->queues as $name => $options) {
-            list($queueName, ,) = (empty($this->getChannel())) ? [] : $this->getChannel()->queue_declare(
+            list($queueName, ,) = $this->getChannel()->queue_declare(
                 $name, $options['passive'],
                 $options['durable'], $options['exclusive'],
                 $options['auto_delete'], $options['nowait'],

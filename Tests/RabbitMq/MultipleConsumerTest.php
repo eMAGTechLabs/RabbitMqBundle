@@ -45,6 +45,7 @@ class MultipleConsumerTest extends TestCase
         $this->amqpConnection = $this->prepareAMQPConnection();
         $this->amqpChannel = $this->prepareAMQPChannel();
         $this->multipleConsumer = new MultipleConsumer($this->amqpConnection, $this->amqpChannel);
+        $this->multipleConsumer->setChannel($this->amqpChannel);
     }
 
     /**
@@ -211,9 +212,8 @@ class MultipleConsumerTest extends TestCase
     /**
      * @dataProvider queueBindingRoutingKeyProvider
      *
-     * @param array $routingKeysOption
      */
-    public function testShouldConsiderQueueArgumentsOnQueueDeclaration($routingKeysOption, $expectedRoutingKey): void
+    public function testShouldConsiderQueueArgumentsOnQueueDeclaration(array $routingKeysOption, string $expectedRoutingKey): void
     {
         $queueName = 'test-queue-name';
         $exchangeName = 'test-exchange-name';
@@ -250,6 +250,8 @@ class MultipleConsumerTest extends TestCase
         $this->amqpChannel->expects($this->once())
             ->method('queue_bind')
             ->with($queueName, $exchangeName, $expectedRoutingKey, false, $expectedArgs);
+
+        $this->multipleConsumer->setChannel($this->amqpChannel);
 
         $this->multipleConsumer->setupFabric();
     }

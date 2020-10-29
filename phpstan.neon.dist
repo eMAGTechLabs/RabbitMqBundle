@@ -25,3 +25,4 @@ parameters:
         - '#Method OldSound\\RabbitMqBundle\\Command\\.*::configure\(\) has no return typehint specified\.#'
         - '#Call to an undefined method OldSound\\RabbitMqBundle\\RabbitMq\\BaseConsumer::(setContext|consume)\(\)\.#'
         - '#Property PhpAmqpLib\\Channel\\AMQPChannel::\$callbacks \(array\<callable\(\): mixed\>\) does not accept array\(#'
+        - '#Strict comparison using === between null and string will always evaluate to false\.#'
