@@ -274,7 +274,7 @@ class Consumer extends BaseConsumer
         return $this->gracefulMaxExecutionTimeoutExitCode;
     }
 
-    public function getTimeoutWait(): int
+    public function getTimeoutWait(): ?int
     {
         return $this->timeoutWait;
     }
