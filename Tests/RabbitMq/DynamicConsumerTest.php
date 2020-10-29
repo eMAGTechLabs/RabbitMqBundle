@@ -3,6 +3,7 @@
 namespace OldSound\RabbitMqBundle\Tests\RabbitMq;
 
 use OldSound\RabbitMqBundle\Provider\QueueOptionsProviderInterface;
+use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use OldSound\RabbitMqBundle\RabbitMq\DynamicConsumer;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPConnection;
@@ -10,7 +11,10 @@ use PHPUnit\Framework\MockObject\MockObject;
 
 class DynamicConsumerTest extends ConsumerTest
 {
-    public function getConsumer(AMQPConnection $amqpConnection, AMQPChannel $amqpChannel): DynamicConsumer
+    /**
+     * @return DynamicConsumer
+     */
+    public function getConsumer(AMQPConnection $amqpConnection, AMQPChannel $amqpChannel)
     {
         return new DynamicConsumer($amqpConnection, $amqpChannel);
     }
