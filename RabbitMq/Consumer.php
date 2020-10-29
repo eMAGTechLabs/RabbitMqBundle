@@ -253,9 +253,6 @@ class Consumer extends BaseConsumer
         $this->gracefulMaxExecutionTimeoutExitCode = $exitCode;
     }
 
-    /**
-     * @param int $timeoutWait
-     */
     public function setTimeoutWait(int $timeoutWait): void
     {
         $this->timeoutWait = $timeoutWait;
@@ -277,9 +274,6 @@ class Consumer extends BaseConsumer
         return $this->gracefulMaxExecutionTimeoutExitCode;
     }
 
-    /**
-     * @return int
-     */
     public function getTimeoutWait(): int
     {
         return $this->timeoutWait;
@@ -287,8 +281,6 @@ class Consumer extends BaseConsumer
 
     /**
      * Choose the timeout wait (in seconds) to use for the $this->getChannel()->wait() method.
-     *
-     * @return int
      */
     private function chooseWaitTimeout(): int
     {
@@ -324,17 +316,11 @@ class Consumer extends BaseConsumer
         return $waitTimeout;
     }
 
-    /**
-     * @param \DateTime $dateTime
-     */
     public function setLastActivityDateTime(\DateTime $dateTime)
     {
         $this->lastActivityDateTime = $dateTime;
     }
 
-    /**
-     * @return \DateTime|null
-     */
     protected function getLastActivityDateTime(): ?\DateTime
     {
         return $this->lastActivityDateTime;
