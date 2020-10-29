@@ -256,7 +256,7 @@ class Consumer extends BaseConsumer
     /**
      * @param int $timeoutWait
      */
-    public function setTimeoutWait($timeoutWait)
+    public function setTimeoutWait(int $timeoutWait): void
     {
         $this->timeoutWait = $timeoutWait;
     }
@@ -280,7 +280,7 @@ class Consumer extends BaseConsumer
     /**
      * @return int
      */
-    public function getTimeoutWait()
+    public function getTimeoutWait(): int
     {
         return $this->timeoutWait;
     }
@@ -290,11 +290,11 @@ class Consumer extends BaseConsumer
      *
      * @return int
      */
-    private function chooseWaitTimeout()
+    private function chooseWaitTimeout(): int
     {
         if ($this->gracefulMaxExecutionDateTime) {
             $allowedExecutionDateInterval = $this->gracefulMaxExecutionDateTime->diff(new \DateTime());
-            $allowedExecutionSeconds =  $allowedExecutionDateInterval->days * 86400
+            $allowedExecutionSeconds = $allowedExecutionDateInterval->days * 86400
                 + $allowedExecutionDateInterval->h * 3600
                 + $allowedExecutionDateInterval->i * 60
                 + $allowedExecutionDateInterval->s;
@@ -335,7 +335,7 @@ class Consumer extends BaseConsumer
     /**
      * @return \DateTime|null
      */
-    protected function getLastActivityDateTime()
+    protected function getLastActivityDateTime(): ?\DateTime
     {
         return $this->lastActivityDateTime;
     }
