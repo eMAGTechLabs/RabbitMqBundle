@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="738853bb-9115-4cef-b6b6-3472a743c873" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ComposerSettings" doNotAsk="true" synchronizationState="SYNCHRONIZE">
+    <pharConfigPath>$PROJECT_DIR$/composer.json</pharConfigPath>
+    <execution />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="composer.json" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1jxOvDCjtigG89gWIniWmfuzW3W" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../symfony-boilerplate" />
+    <property name="vue.rearranger.settings.migration" value="true" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="738853bb-9115-4cef-b6b6-3472a743c873" name="Default Changelist" comment="" />
+      <created>1604742504996</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1604742504996</updated>
+      <workItem from="1604742506142" duration="3980000" />
+      <workItem from="1604818418776" duration="6154000" />
+      <workItem from="1605727348869" duration="8000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ORDER">
+      <list>
+        <option value="0" />
+        <option value="2" />
+        <option value="3" />
+        <option value="1" />
+      </list>
+    </option>
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="100" y="100" width="1720" height="836" key="DiffContextDialog" timestamp="1604745742747">
+      <screen x="0" y="0" width="1920" height="1036" />
+    </state>
+    <state x="100" y="100" width="1720" height="836" key="DiffContextDialog/0.0.1920.1036@0.0.1920.1036" timestamp="1604745742747" />
+    <state x="748" y="276" key="FileChooserDialogImpl" timestamp="1604743335026">
+      <screen x="0" y="0" width="1920" height="1036" />
+    </state>
+    <state x="748" y="276" key="FileChooserDialogImpl/0.0.1920.1036@0.0.1920.1036" timestamp="1604743335026" />
+    <state x="696" y="239" key="NewPhpClassDialog" timestamp="1604742952905">
+      <screen x="0" y="0" width="1920" height="1036" />
+    </state>
+    <state x="696" y="239" key="NewPhpClassDialog/0.0.1920.1036@0.0.1920.1036" timestamp="1604742952905" />
+    <state width="498" height="446" key="SwitcherDM" timestamp="1604819313410">
+      <screen x="0" y="0" width="1920" height="1036" />
+    </state>
+    <state width="498" height="446" key="SwitcherDM/0.0.1920.1036@0.0.1920.1036" timestamp="1604819313410" />
+    <state x="664" y="257" width="870" height="692" key="find.popup" timestamp="1604745853295">
+      <screen x="0" y="0" width="1920" height="1036" />
+    </state>
+    <state x="664" y="257" width="870" height="692" key="find.popup/0.0.1920.1036@0.0.1920.1036" timestamp="1604745853295" />
+    <state x="623" y="228" width="672" height="678" key="search.everywhere.popup" timestamp="1604851875259">
+      <screen x="0" y="0" width="1920" height="1036" />
+    </state>
+    <state x="623" y="228" width="672" height="678" key="search.everywhere.popup/0.0.1920.1036@0.0.1920.1036" timestamp="1604851875259" />
+  </component>
+</project>

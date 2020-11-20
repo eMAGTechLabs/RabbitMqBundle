@@ -18,12 +18,12 @@ interface DequeuerInterface
      *
      * @return void
      */
-    public function setIdleTimeout($idleTimeout);
+    //public function setIdleTimeout($idleTimeout);
 
     /**
      * Get current idle timeout
      *
      * @return int
      */
-    public function getIdleTimeout();
+    //public function getIdleTimeout();
 }

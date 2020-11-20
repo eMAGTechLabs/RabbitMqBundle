@@ -9,14 +9,9 @@
         <parameter key="old_sound_rabbit_mq.lazy.connection.class">PhpAmqpLib\Connection\AMQPLazyConnection</parameter>
         <parameter key="old_sound_rabbit_mq.lazy.socket_connection.class">PhpAmqpLib\Connection\AMQPLazySocketConnection</parameter>
         <parameter key="old_sound_rabbit_mq.connection_factory.class">OldSound\RabbitMqBundle\RabbitMq\AMQPConnectionFactory</parameter>
-        <parameter key="old_sound_rabbit_mq.binding.class">OldSound\RabbitMqBundle\RabbitMq\Binding</parameter>
         <parameter key="old_sound_rabbit_mq.producer.class">OldSound\RabbitMqBundle\RabbitMq\Producer</parameter>
         <parameter key="old_sound_rabbit_mq.consumer.class">OldSound\RabbitMqBundle\RabbitMq\Consumer</parameter>
-        <parameter key="old_sound_rabbit_mq.multi_consumer.class">OldSound\RabbitMqBundle\RabbitMq\MultipleConsumer</parameter>
-        <parameter key="old_sound_rabbit_mq.group_consumer.class">OldSound\RabbitMqBundle\RabbitMq\GroupConsumer</parameter>
-        <parameter key="old_sound_rabbit_mq.dynamic_consumer.class">OldSound\RabbitMqBundle\RabbitMq\DynamicConsumer</parameter>
         <parameter key="old_sound_rabbit_mq.batch_consumer.class">OldSound\RabbitMqBundle\RabbitMq\BatchConsumer</parameter>
-        <parameter key="old_sound_rabbit_mq.anon_consumer.class">OldSound\RabbitMqBundle\RabbitMq\AnonConsumer</parameter>
         <parameter key="old_sound_rabbit_mq.rpc_client.class">OldSound\RabbitMqBundle\RabbitMq\RpcClient</parameter>
         <parameter key="old_sound_rabbit_mq.rpc_server.class">OldSound\RabbitMqBundle\RabbitMq\RpcServer</parameter>
         <parameter key="old_sound_rabbit_mq.logged.channel.class">OldSound\RabbitMqBundle\RabbitMq\AMQPLoggedChannel</parameter>
@@ -26,6 +21,8 @@
     </parameters>
 
     <services>
+        <defaults autowire="true" autoconfigure="true"/>
+
         <service id="old_sound_rabbit_mq.data_collector" class="%old_sound_rabbit_mq.data_collector.class%">
             <argument type="collection" />
             <tag name="data_collector" template="@OldSoundRabbitMq/Collector/collector.html.twig" id="rabbit_mq" />
@@ -33,32 +30,18 @@
         
         <service id="old_sound_rabbit_mq.parts_holder" class="%old_sound_rabbit_mq.parts_holder.class%" public="true" />
 
-        <service id="old_sound_rabbit_mq.anon_consumer_command" class="OldSound\RabbitMqBundle\Command\AnonConsumerCommand">
-            <tag name="console.command" command="rabbitmq:anon-consumer" />
-        </service>
-
         <service id="old_sound_rabbit_mq.batch_consumer_command" class="OldSound\RabbitMqBundle\Command\BatchConsumerCommand">
             <tag name="console.command" command="rabbitmq:batch:consumer" />
         </service>
 
-        <service id="old_sound_rabbit_mq.group_consumer_command" class="OldSound\RabbitMqBundle\Command\GroupConsumerCommand">
-            <tag name="console.command" command="rabbitmq:group:consumer" />
-        </service>
-
         <service id="old_sound_rabbit_mq.consumer_command" class="OldSound\RabbitMqBundle\Command\ConsumerCommand">
+            <argument type="tagged_iterator" tag="old_sound_rabbit_mq.consumer"></argument>
+            <argument type="service" id="old_sound_rabbit_mq.declaration_registry"></argument>
             <tag name="console.command" command="rabbitmq:consumer" />
         </service>
 
         <service id="old_sound_rabbit_mq.delete_command" class="OldSound\RabbitMqBundle\Command\DeleteCommand">
             <tag name="console.command" command="rabbitmq:delete" />
-        </service>
-
-        <service id="old_sound_rabbit_mq.dynamic_consumer_command" class="OldSound\RabbitMqBundle\Command\DynamicConsumerCommand">
-            <tag name="console.command" command="rabbitmq:dynamic-consumer" />
-        </service>
-
-        <service id="old_sound_rabbit_mq.multiple_consumer_command" class="OldSound\RabbitMqBundle\Command\MultipleConsumerCommand">
-            <tag name="console.command" command="rabbitmq:multiple-consumer" />
         </service>
 
         <service id="old_sound_rabbit_mq.purge_consumer_command" class="OldSound\RabbitMqBundle\Command\PurgeConsumerCommand">

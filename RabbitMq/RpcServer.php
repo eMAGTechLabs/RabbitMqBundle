@@ -4,7 +4,7 @@ namespace OldSound\RabbitMqBundle\RabbitMq;
 
 use PhpAmqpLib\Message\AMQPMessage;
 
-class RpcServer extends BaseConsumer
+class RpcServer
 {
     private $serializer = 'serialize';
 
