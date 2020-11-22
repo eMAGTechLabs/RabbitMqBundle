@@ -1,30 +1,34 @@
 <?php
 
-
-namespace OldSound\RabbitMqBundle\RabbitMq;
-
+namespace OldSound\RabbitMqBundle\ExecuteCallbackStrategy;
 
 use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 
-class BatchHandler implements ExecuteCallbackStrategyInterface
+class BatchExecuteCallbackStrategy implements ExecuteCallbackStrategyInterface
 {
-    /** @var QueueConsuming */
-    private $queueConsuming;
+    /** @var int */
+    private $batchCount;
     /** @var callable */
     private $proccessMessagesFn;
 
     /** @var AMQPMessage[] */
     protected $messagesBatch = [];
 
-    public function __construct(QueueConsuming $queueConsuming, callable $proccessMessagesFn)
+    public function __construct(int $batchCount)
     {
-        if (!$queueConsuming->batchCount || $queueConsuming->batchCount < 2) {
-            throw new \InvalidArgumentException('TODO');
-        }
-        $this->queueConsuming = $queueConsuming;
-        $this->proccessMessagesFn = $proccessMessagesFn;
+        $this->batchCount = $batchCount;
+    }
+
+    public function setProccessMessagesFn(callable $proccessMessagesFn)
+    {
+        $this->proccessMessagesFn  = $proccessMessagesFn;
+    }
+
+    public function canPrecessMultiMessages(): bool
+    {
+        return true;
     }
 
     /**
@@ -32,7 +36,7 @@ class BatchHandler implements ExecuteCallbackStrategyInterface
      */
     protected function proccessMessages(array $messages)
     {
-        call_user_func($this->proccessMessagesFn, $messages, $this->queueConsuming);
+        call_user_func($this->proccessMessagesFn, $messages);
     }
 
     public function consumeCallback(AMQPMessage $message)
@@ -62,7 +66,7 @@ class BatchHandler implements ExecuteCallbackStrategyInterface
 
     protected function isBatchCompleted(): bool
     {
-        return count($this->batch) === $this->queueConsuming->batchCount;
+        return count($this->batch) === $this->batchCount;
     }
 
     /**

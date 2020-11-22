@@ -5,6 +5,8 @@ namespace OldSound\RabbitMqBundle\DependencyInjection;
 use OldSound\RabbitMqBundle\Consumer\ConsumersRegistry;
 use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
 use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
+use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\SimpleExecuteCallbackStrategy;
+use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy;
 use OldSound\RabbitMqBundle\RabbitMq\ExchangeDeclaration;
 use OldSound\RabbitMqBundle\RabbitMq\QueueDeclaration;
 use PhpAmqpLib\Channel\AMQPChannel;
@@ -247,6 +249,9 @@ class OldSoundRabbitMqExtension extends Extension
 
     protected function loadConsumers()
     {
+        $simpleExecuteCallbackStrategyAlias = 'old_sound_rabbit_mq.execute_callback_strategy.simple';
+        $this->container->setDefinition($simpleExecuteCallbackStrategyAlias, new Definition(SimpleExecuteCallbackStrategy::class));
+
         foreach ($this->config['consumers'] as $key => $consumer) {
             $connectionName = isset($consumer['connection']) ? $consumer['connection'] : 'default';
 
@@ -256,15 +261,23 @@ class OldSoundRabbitMqExtension extends Extension
             ]);
             $definition->setPublic(true);
             $definition->addTag('old_sound_rabbit_mq.consumer');
-            foreach($consumer['consumeQueues'] as $consumeQueue) {
-                $def = new Definition(QueueConsuming::class);
-                $def->setProperties([
+            foreach($consumer['consumeQueues'] as $index => $consumeQueue) {
+                $queueConsumingDef = new Definition(QueueConsuming::class);
+                $queueConsumingDef->setProperties([
                     'queueName' => $consumeQueue['queue'],
                     'callback' => [new Reference($consumeQueue['callback']), 'execute'],
                     //'consumerTag' => $consumeQueue['consumer_tag'],
                     //'noLocal' => $consumeQueue['no_local'],
                 ]);
-                $definition->addMethodCall('consumeQueue', [$def]);
+
+                $executeCallbackStrategyRef = isset($consumeQueue['batch_count']) && $consumeQueue['batch_count'] > 2 ?
+                    new Definition(BatchExecuteCallbackStrategy::class, [$consumeQueue['batch_count']]) :
+                    new Reference($simpleExecuteCallbackStrategyAlias);
+
+                $definition->addMethodCall('consumeQueue', [
+                    $queueConsumingDef,
+                    $executeCallbackStrategyRef
+                ]);
             }
 
             /* TODO if (array_key_exists('qos_options', $consumer)) {

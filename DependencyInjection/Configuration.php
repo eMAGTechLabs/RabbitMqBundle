@@ -194,6 +194,7 @@ class Configuration implements ConfigurationInterface
                                     ->children()
                                         ->scalarNode('queue')->isRequired()->end()
                                         ->scalarNode('callback')->isRequired()->end()
+                                        ->scalarNode('batch_count')->end()
                                         ->booleanNode('exclusive')->end()
                                         ->booleanNode('auto_delete')->end()
                                     ->end()

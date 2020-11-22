@@ -22,8 +22,6 @@ class QueueConsuming
     public $callback;
 
     /** @var int|null */
-    public $batchCount;
-    /** @var int|null */
     public $qusPrefetchSize;
     /** @var int|null */
     public $qusPrefetchCount;

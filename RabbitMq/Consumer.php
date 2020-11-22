@@ -18,6 +18,7 @@ use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
+use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\ExecuteCallbackStrategyInterface;
 
 class Consumer
 {
@@ -48,12 +49,6 @@ class Consumer
     /** @var bool */
     protected $forceStop = false;
     /**
-     * @var array
-     * [0 => AMQPMessage, 1 => QueueConsuming]
-     */
-    protected $batches = [];
-
-    /**
      * Importrant! If true - then channel can not be used from somewhere else
      * @var bool
      */
@@ -73,17 +68,12 @@ class Consumer
     public $idleTimeoutExitCode;
     /** @var \DateTime|null */
     public $lastActivityDateTime;
-    /** @var callable */
-    private $processMessagesFn;
 
     public function __construct(string $name, AMQPChannel $channel)
     {
         $this->name = $name;
         $this->channel = $channel;
         $this->logger = new NullLogger();
-        $this->processMessagesFn = function (array $messages, QueueConsuming $queueConsuming) {
-            $this->processMessages($messages, $queueConsuming);
-        };
     }
     
     public function getName(): string
@@ -127,15 +117,16 @@ class Consumer
         // }
     }
 
-    public function consumeQueue(QueueConsuming $queueConsuming)
+    public function consumeQueue(QueueConsuming $queueConsuming, ExecuteCallbackStrategyInterface $executeCallbackStrategy)
     {
         $this->queueConsumings[] = $queueConsuming;
-        if ($this->isBatchQueueConsuming($queueConsuming)) {
-            $this->executeCallbackStrategies[] = new BatchHandler($queueConsuming, $this->processMessagesFn);
-        } else {
-            $this->executeCallbackStrategies[] = new Handler($queueConsuming, $this->processMessagesFn);
-        }
+        $executeCallbackStrategy->setProccessMessagesFn(function (array $messages) use ($queueConsuming) {
+            $this->processMessages($messages, $queueConsuming);
+        });
+        $this->executeCallbackStrategies[] = $executeCallbackStrategy;
     }
+
+
 
     private function getExecuteCallbackStrategy(QueueConsuming $queueConsuming): ExecuteCallbackStrategyInterface
     {
@@ -148,11 +139,6 @@ class Consumer
     public function getQueueConsumings(): array
     {
         return $this->queueConsumings;
-    }
-
-    private function isBatchQueueConsuming(QueueConsuming $queueConsuming)
-    {
-        return $queueConsuming->batchCount && $queueConsuming->batchCount > 1;
     }
 
     /**
@@ -194,7 +180,7 @@ class Consumer
                 }
             } catch (AMQPTimeoutException $e) {
                 foreach($this->executeCallbackStrategies as $executeCallbackStrategy) {
-                    $executeCallbackStrategy->onCatchTimeout();
+                    $executeCallbackStrategy->onCatchTimeout($e);
                 }
                 $now = new \DateTime();
                 if ($this->gracefulMaxExecutionDateTime && $this->gracefulMaxExecutionDateTime <= $now) {
@@ -229,7 +215,7 @@ class Consumer
             throw new \InvalidArgumentException('Messages can not be empty');
         }
 
-        $canPrecessMultiMessages = $this->getExecuteCallbackStrategy($queueConsuming) instanceof BatchHandler; // TODO $stragery->canPrecessMultiMessages()
+        $canPrecessMultiMessages = $this->getExecuteCallbackStrategy($queueConsuming)->canPrecessMultiMessages();
         if (!$canPrecessMultiMessages && count($messages) !== 1) {
             throw new \InvalidArgumentException('Strategy is not supported process of multi messages');
         }
@@ -254,6 +240,13 @@ class Consumer
             );
 
             if (!$queueConsuming->noAck) {
+                $messages = array_combine(
+                    array_map(function ($message) {
+                        return $message->getDeliveryTag();
+                    }, $messages),
+                    $messages
+                );
+
                 $processFlags = $this->handleProcessMessages($messages, $processFlags);
             }
 
@@ -292,7 +285,7 @@ class Consumer
      * @param AMQPMessage[] $messages
      * @param array|int $processFlags
      */
-    protected function handleProcessMessages($messages, $processFlags): array
+    private function handleProcessMessages($messages, $processFlags): array
     {
         if ($this->multiAck && count($messages) > 1 && $processFlags === ConsumerInterface::MSG_ACK) {
             // all messages have same channel
@@ -320,8 +313,8 @@ class Consumer
             } else {
                 $processFlag = $processFlags;
                 $processFlags = [];
-                foreach ($processFlags as $deliveryTag => $message) {
-                    $response[$message->getDeliveryTag()] = $processFlag;
+                foreach ($messages as $message) {
+                    $processFlags[$message->getDeliveryTag()] = $processFlag;
                 }
             }
 
