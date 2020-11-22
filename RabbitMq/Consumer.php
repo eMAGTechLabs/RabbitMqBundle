@@ -104,19 +104,6 @@ class Consumer
         }
     }
 
-    protected function consumeCallback(AMQPMessage $message, QueueConsuming $queueConsuming)
-    {
-    }
-
-    protected function batchConsumeCallback(AMQPMessage $message, QueueConsuming $queueConsuming)
-    {
-        $this->batch[$message->getDeliveryTag()] = [$message, $queueConsuming];
-
-        // if ($this->isCompleteBatch()) {
-        //    $this->runConsumeCallbacks();
-        // }
-    }
-
     public function consumeQueue(QueueConsuming $queueConsuming, ExecuteCallbackStrategyInterface $executeCallbackStrategy)
     {
         $this->queueConsumings[] = $queueConsuming;
@@ -125,8 +112,6 @@ class Consumer
         });
         $this->executeCallbackStrategies[] = $executeCallbackStrategy;
     }
-
-
 
     private function getExecuteCallbackStrategy(QueueConsuming $queueConsuming): ExecuteCallbackStrategyInterface
     {
@@ -247,7 +232,7 @@ class Consumer
                     $messages
                 );
 
-                $processFlags = $this->handleProcessMessages($messages, $processFlags);
+                $processFlags = $this->handleProcessMessages($messages, $processFlags, $queueConsuming);
             }
 
             foreach ($messages as $message) {
@@ -285,8 +270,10 @@ class Consumer
      * @param AMQPMessage[] $messages
      * @param array|int $processFlags
      */
-    private function handleProcessMessages($messages, $processFlags): array
+    private function handleProcessMessages($messages, $processFlags, QueueConsuming $queueConsuming): array
     {
+        $executeCallbackStrategy = $this->getExecuteCallbackStrategy($queueConsuming);
+
         if ($this->multiAck && count($messages) > 1 && $processFlags === ConsumerInterface::MSG_ACK) {
             // all messages have same channel
             $channels = array_map(function ($message) {
@@ -296,7 +283,14 @@ class Consumer
                 throw new InvalidArgumentException('Messages can not be processed as multi ack with different channels');
             }
             $this->channel->basic_ack(last($deliveryTag), true);
+
             $this->consumed = $this->consumed + count($messages);
+
+            foreach($messages as $message) {
+                unset($this->consumerTags[array_search($message->getDeliveryTag(), $this->consumerTags, true)]);
+            }
+            $executeCallbackStrategy->onMessageProcessed($message);
+
             return array_combine(
                 array_map(function ($message) {
                     return $message->getDeliveryTag();
@@ -324,8 +318,21 @@ class Consumer
                     throw new AMQPRuntimeException(sprintf('Unknown delivery_tag %d!', $deliveryTag));
                 }
 
-                $this->handleProcessFlag($message->getChannel(), $deliveryTag, $processFlag);
+                $channel = $message->getChannel();
+                if ($processFlag === ConsumerInterface::MSG_REJECT_REQUEUE || false === $processFlag) {
+                    $channel->basic_reject($deliveryTag, true); // Reject and requeue message to RabbitMQ
+                } else if ($processFlag === ConsumerInterface::MSG_SINGLE_NACK_REQUEUE) {
+                    $channel->basic_nack($deliveryTag, false, true); // NACK and requeue message to RabbitMQ
+                } else if ($processFlag === ConsumerInterface::MSG_REJECT) {
+                    $channel->basic_reject($deliveryTag, false); // Reject and drop
+                } else if ($processFlag !== ConsumerInterface::MSG_ACK_SENT) {
+                    $channel->basic_ack($deliveryTag); // Remove message from queue only if callback return not false
+                }
+
                 $this->consumed++;
+
+                unset($this->consumerTags[array_search($deliveryTag, $this->consumerTags, true)]);
+                $executeCallbackStrategy->onMessageProcessed($message);
             }
 
             return $processFlags;
@@ -334,15 +341,8 @@ class Consumer
 
     private function handleProcessFlag(AMQPChannel $channel, $deliveryTag, $processFlag)
     {
-        if ($processFlag === ConsumerInterface::MSG_REJECT_REQUEUE || false === $processFlag) {
-            $channel->basic_reject($deliveryTag, true); // Reject and requeue message to RabbitMQ
-        } else if ($processFlag === ConsumerInterface::MSG_SINGLE_NACK_REQUEUE) {
-            $channel->basic_nack($deliveryTag, false, true); // NACK and requeue message to RabbitMQ
-        } else if ($processFlag === ConsumerInterface::MSG_REJECT) {
-            $channel->basic_reject($deliveryTag, false); // Reject and drop
-        } else if ($processFlag !== ConsumerInterface::MSG_ACK_SENT) {
-            $channel->basic_ack($deliveryTag); // Remove message from queue only if callback return not false
-        }
+
+
     }
 
     protected function maybeStopConsumer()

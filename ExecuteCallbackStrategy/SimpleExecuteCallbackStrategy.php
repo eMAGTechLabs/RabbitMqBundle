@@ -34,11 +34,15 @@ class SimpleExecuteCallbackStrategy implements ExecuteCallbackStrategyInterface
         $this->proccessMessages([$message]);
     }
 
-    public function onStopConsuming()
+    public function onMessageProcessed(AMQPMessage $message)
     {
     }
 
     public function onCatchTimeout(AMQPTimeoutException $e)
+    {
+    }
+
+    public function onStopConsuming()
     {
     }
 }

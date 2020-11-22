@@ -45,15 +45,13 @@ class BatchExecuteCallbackStrategy implements ExecuteCallbackStrategyInterface
 
         if ($this->isBatchCompleted()) {
             $this->proccessMessages($this->messagesBatch);
-            // TODO $this->messagesBatch = [];
+            // $this->messagesBatch = [];
         }
     }
 
-    public function onStopConsuming()
+    public function onMessageProcessed(AMQPMessage $message)
     {
-        if (!$this->isEmptyBatch()) {
-            $this->proccessMessages($this->messagesBatch);
-        }
+        unset($this->messagesBatch[array_search($message, $this->messagesBatch, true)]);
     }
 
     public function onCatchTimeout(AMQPTimeoutException $e)
@@ -63,6 +61,13 @@ class BatchExecuteCallbackStrategy implements ExecuteCallbackStrategyInterface
         }
     }
 
+    public function onStopConsuming()
+    {
+        if (!$this->isEmptyBatch()) {
+            $this->proccessMessages($this->messagesBatch);
+            // $this->messagesBatch = [];
+        }
+    }
 
     protected function isBatchCompleted(): bool
     {

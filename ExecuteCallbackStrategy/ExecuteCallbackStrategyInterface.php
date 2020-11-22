@@ -14,6 +14,8 @@ interface ExecuteCallbackStrategyInterface
 
     public function consumeCallback(AMQPMessage $message);
 
+    public function onMessageProcessed(AMQPMessage $message);
+
     public function onCatchTimeout(AMQPTimeoutException $e);
 
     public function onStopConsuming();
