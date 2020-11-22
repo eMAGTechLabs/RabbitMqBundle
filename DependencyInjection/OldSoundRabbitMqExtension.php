@@ -68,7 +68,7 @@ class OldSoundRabbitMqExtension extends Extension
             $declarationRegistryDef->addMethodCall('addQueue', [$queue]);
         };
         //$this->loadBindings();
-        //$this->loadProducers();
+        $this->loadProducers();
         //$this->loadConsumers();;
         $this->loadConsumers();
         //$this->loadRpcClients();
@@ -203,19 +203,23 @@ class OldSoundRabbitMqExtension extends Extension
                 if (!isset($producer['exchange_options'])) {
                     $producer['exchange_options'] = $this->getDefaultExchangeOptions();
                 }
-                $definition->addMethodCall('setExchangeOptions', array($this->normalizeArgumentKeys($producer['exchange_options'])));
+                //$definition->addMethodCall('setExchangeOptions', array($this->normalizeArgumentKeys($producer['exchange_options'])));
                 //this producer doesn't define a queue -> using AMQP Default
                 if (!isset($producer['queue_options'])) {
                     $producer['queue_options'] = $this->getDefaultQueueOptions();
                 }
-                $definition->addMethodCall('setQueueOptions', array($producer['queue_options']));
-                $this->injectConnection($definition, $producer['connection']);
-                if ($this->collectorEnabled) {
-                    $this->injectLoggedChannel($definition, $key, $producer['connection']);
-                }
-                if (!$producer['auto_setup_fabric']) {
-                    $definition->addMethodCall('disableAutoSetupFabric');
-                }
+                //$definition->addMethodCall('setQueueOptions', array($producer['queue_options']));
+
+                $definition->addArgument($this->createChannelReference($producer['connection']));
+                $definition->addArgument($producer['exchange']);
+                //$this->injectConnection($definition, $producer['connection']);
+                //if ($this->collectorEnabled) {
+                //    $this->injectLoggedChannel($definition, $key, $producer['connection']);
+                //}
+
+                //if (!$producer['auto_setup_fabric']) {
+                //    $definition->addMethodCall('disableAutoSetupFabric');
+                //}
 
                 if ($producer['enable_logger']) {
                     $this->injectLogger($definition);
@@ -236,6 +240,11 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
+    private function createChannelReference($connectionName): Reference
+    {
+        return new Reference(sprintf('old_sound_rabbit_mq.channel.%s', $connectionName));
+    }
+
     protected function loadConsumers()
     {
         foreach ($this->config['consumers'] as $key => $consumer) {
@@ -243,7 +252,7 @@ class OldSoundRabbitMqExtension extends Extension
 
             $definition = new Definition('%old_sound_rabbit_mq.consumer.class%', [
                 $key,
-                new Reference(sprintf('old_sound_rabbit_mq.channel.%s', $connectionName))
+                $this->createChannelReference($connectionName)
             ]);
             $definition->setPublic(true);
             $definition->addTag('old_sound_rabbit_mq.consumer');

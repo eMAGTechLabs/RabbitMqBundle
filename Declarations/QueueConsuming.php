@@ -20,4 +20,9 @@ class QueueConsuming
     public $nowait = false;
     /** @var callable */
     public $callback;
+
+    /** @var int|null */
+    public $qusPrefetchSize;
+    /** @var int|null */
+    public $qusPrefetchCount;
 }

@@ -92,7 +92,7 @@ class BatchConsumer extends Consumer implements DequeuerInterface
     public function stopConsuming()
     {
         if (!$this->isEmptyBatch()) {
-            $this->processMessages(array_column($this->batch, 0), array_column($this->batch, 1));
+            $this->runConsumeCallbacks();
         }
 
         parent::stopConsuming();

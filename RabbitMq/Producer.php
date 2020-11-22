@@ -2,16 +2,23 @@
 
 namespace OldSound\RabbitMqBundle\RabbitMq;
 
+use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
 use OldSound\RabbitMqBundle\Declarations\Declarator;
+use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\NullLogger;
 
 /**
  * Producer, that publishes AMQP Messages
  */
 class Producer implements ProducerInterface
 {
+    use LoggerAwareTrait;
+    use EventDispatcherAwareTrait;
+
     public $contentType = 'text/plain';
     public $deliveryMode = 2;
     public $autoDeclare = true;
@@ -25,6 +32,7 @@ class Producer implements ProducerInterface
     {
         $this->channel = $channel;
         $this->exchange = $exchange;
+        $this->logger = new NullLogger();
     }
 
     /**
@@ -38,7 +46,7 @@ class Producer implements ProducerInterface
     public function publish($msgBody, string $routingKey = '', array $additionalProperties = [], array $headers = null)
     {
         if ($this->autoDeclare) {
-            (new Declarator($this->channel))->declareForExchange($this->exchange);
+            // TODO (new Declarator($this->channel))->declareForExchange($this->exchange);
         }
 
         $msg = new AMQPMessage((string) $msgBody, array_merge([

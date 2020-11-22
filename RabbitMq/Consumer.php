@@ -2,12 +2,14 @@
 
 namespace OldSound\RabbitMqBundle\RabbitMq;
 
+use http\Exception\InvalidArgumentException;
 use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
 use OldSound\RabbitMqBundle\Event\AfterProcessingMessageEvent;
 use OldSound\RabbitMqBundle\Event\AMQPEvent;
 use OldSound\RabbitMqBundle\Event\BeforeProcessingMessageEvent;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\Event\OnIdleEvent;
+use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
 use OldSound\RabbitMqBundle\MemoryChecker\MemoryConsumptionChecker;
 use OldSound\RabbitMqBundle\MemoryChecker\NativeMemoryUsageProvider;
 use PhpAmqpLib\Channel\AMQPChannel;
@@ -16,12 +18,11 @@ use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface as ContractsEventDispatcherInterface;
 
 class Consumer
 {
     use LoggerAwareTrait;
+    use EventDispatcherAwareTrait;
     
     /** @var string */
     public $name;
@@ -45,6 +46,11 @@ class Consumer
     /** @var bool */
     protected $forceStop = false;
     /**
+     * Importrant! If true - then channel can not be used from somewhere else
+     * @var bool
+     */
+    public $multiAck = false;
+    /**
      * @var \DateTime|null DateTime after which the consumer will gracefully exit. "Gracefully" means, that
      *      any currently running consumption will not be interrupted.
      */
@@ -59,8 +65,7 @@ class Consumer
     public $idleTimeoutExitCode;
     /** @var \DateTime|null */
     public $lastActivityDateTime;
-    /** @var EventDispatcherInterface|null */
-    protected $eventDispatcher = null;
+
     
     public function __construct(string $name, AMQPChannel $channel)
     {
@@ -267,19 +272,35 @@ class Consumer
         return $response;
     }
 
+    /**
+     * @param AMQPMessage[] $messages
+     * @param array|int $processFlags
+     * @see ConsumerInterface
+     */
     protected function handleProcessMessages($messages, $processFlags)
     {
+        if ($this->multiAck && count($messages) > 1 && $processFlags === ConsumerInterface::MSG_ACK) {
+            // all messages have same channel
+            $channels = array_map(function ($message) {
+                return $message->getChannel();
+            }, $messages);
+            if (count($channels) !== array_unique($channels)) {
+                throw new InvalidArgumentException('Messages can not be processed as multi ack with different channels');
+            }
+            $this->channel->basic_ack(last($deliveryTag), true);
+            return;
+        }
         foreach ($this->analyzeProcessFlags($messages, $processFlags) as $deliveryTag => $processFlag) {
-            $message = isset($this->messages[$deliveryTag]) ? $this->messages[$deliveryTag] : null;
+            $message = isset($messages[$deliveryTag]) ? $messages[$deliveryTag] : null;
             if (null === $message) {
                 throw new AMQPRuntimeException(sprintf('Unknown delivery_tag %d!', $deliveryTag));
             }
 
-            $this->handleProcessFlag($message->delivery_info['channel'], $deliveryTag, $processFlag);
+            $this->handleProcessFlag($message->getChannel(), $deliveryTag, $processFlag);
         }
     }
 
-    protected function handleProcessFlag(AMQPChannel $channel, $deliveryTag, $processFlag)
+    private function handleProcessFlag(AMQPChannel $channel, $deliveryTag, $processFlag)
     {
         if ($processFlag === ConsumerInterface::MSG_REJECT_REQUEUE || false === $processFlag) {
             $channel->basic_reject($deliveryTag, true); // Reject and requeue message to RabbitMQ
@@ -352,40 +373,5 @@ class Consumer
             $waitTimeout = min($waitTimeout, $this->timeoutWait);
         }
         return $waitTimeout;
-    }
-
-
-    /**
-     * @param EventDispatcherInterface $eventDispatcher
-     *
-     * @return BaseAmqp
-     */
-    public function setEventDispatcher(EventDispatcherInterface $eventDispatcher)
-    {
-        $this->eventDispatcher = $eventDispatcher;
-
-        return $this;
-    }
-
-    /**
-     * @param string $eventName
-     * @param AMQPEvent  $event
-     */
-    protected function dispatchEvent($eventName, AMQPEvent $event)
-    {
-        if ($this->getEventDispatcher() instanceof ContractsEventDispatcherInterface) {
-            $this->getEventDispatcher()->dispatch(
-                $event,
-                $eventName
-            );
-        }
-    }
-
-    /**
-     * @return EventDispatcherInterface|null
-     */
-    public function getEventDispatcher()
-    {
-        return $this->eventDispatcher;
     }
 }
