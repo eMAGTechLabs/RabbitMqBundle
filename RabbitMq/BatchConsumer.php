@@ -11,7 +11,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 class BatchConsumer extends Consumer implements DequeuerInterface
 {
     /** @var array
-     * [0 => AMQPMessage, 1 => QueueConsuming]
+     * [0 => AMQPMessage[], 1 => QueueConsuming]
      */
     protected $batch = [];
 
@@ -25,57 +25,43 @@ class BatchConsumer extends Consumer implements DequeuerInterface
     }
 
 
-    protected function preConsume()
+    /* TODO protected function preConsume()
     {
         parent::preConsume();
 
         if ($this->isCompleteBatch()) {
-            $this->releaseMessagesBuffer();
-        }
-    }
-
-    protected function catchTimeout(AMQPTimeoutException $e)
-    {
-        if (count($this->batch) > 0) {
             $this->runConsumeCallbacks();
         }
-    }
+    }*/
 
-    public function consume(int $msgAmount = null)
+    /*public function consume(int $msgAmount = null)
     {
         if($msgAmount !== null) {
             throw new \InvalidArgumentException('Can not specify msgAmount for batchConsumer');
         }
 
         return parent::consume(null);
-    }
-
-    /**
-     * @return  bool
-     */
-    protected function isCompleteBatch()
-    {
-        return count($this->batch) === $this->batchCount;
-    }
-
-    /**
-     * @return  bool
-     */
-    protected function isEmptyBatch()
-    {
-        return count($this->batch) === 0;
-    }
+    }*/
 
     protected function consumeCallback(AMQPMessage $message, QueueConsuming $queueConsuming)
     {
         $this->batch[$message->getDeliveryTag()] = [$message, $queueConsuming];
 
         if ($this->isCompleteBatch()) {
-            $this->runConsumeCallbacks();
+            $this->executeConsumeCallbacks();
         }
     }
 
-    protected function runConsumeCallbacks()
+    protected function catchTimeout(AMQPTimeoutException $e)
+    {
+        parent::catchTimeout($e);
+
+        if (count($this->batch) > 0) {
+            $this->executeConsumeCallbacks();
+        }
+    }
+
+    protected function executeConsumeCallbacks()
     {
         try {
             parent::processMessages(array_column($this->batch, 0), array_column($this->batch, 1));
@@ -92,9 +78,19 @@ class BatchConsumer extends Consumer implements DequeuerInterface
     public function stopConsuming()
     {
         if (!$this->isEmptyBatch()) {
-            $this->runConsumeCallbacks();
+            $this->executeConsumeCallbacks();
         }
 
         parent::stopConsuming();
+    }
+
+
+
+    /**
+     * @return  bool
+     */
+    protected function isEmptyBatch()
+    {
+        return count($this->batch) === 0;
     }
 }

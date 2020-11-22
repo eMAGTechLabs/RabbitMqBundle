@@ -30,6 +30,8 @@ class Consumer
     protected $channel;
     /** @var QueueConsuming[] */
     protected $queueConsumings = [];
+    /** @var ExecuteCallbackStrategyInterface[] */
+    protected $executeCallbackStrategies = [];
     /** @var string[] */
     protected $consumerTags = [];
     /** @var array */
@@ -45,6 +47,12 @@ class Consumer
     protected $consumed = 0;
     /** @var bool */
     protected $forceStop = false;
+    /**
+     * @var array
+     * [0 => AMQPMessage, 1 => QueueConsuming]
+     */
+    protected $batches = [];
+
     /**
      * Importrant! If true - then channel can not be used from somewhere else
      * @var bool
@@ -65,13 +73,17 @@ class Consumer
     public $idleTimeoutExitCode;
     /** @var \DateTime|null */
     public $lastActivityDateTime;
+    /** @var callable */
+    private $processMessagesFn;
 
-    
     public function __construct(string $name, AMQPChannel $channel)
     {
         $this->name = $name;
         $this->channel = $channel;
         $this->logger = new NullLogger();
+        $this->processMessagesFn = function (array $messages, QueueConsuming $queueConsuming) {
+            $this->processMessages($messages, $queueConsuming);
+        };
     }
     
     public function getName(): string
@@ -96,20 +108,38 @@ class Consumer
                 $queueConsuming->noAck,
                 $queueConsuming->exclusive,
                 $queueConsuming->nowait,
-                function (AMQPMessage $msg) use ($queueConsuming) {
-                    $this->consumeCallback($msg, $queueConsuming);
+                function (AMQPMessage $message) use ($queueConsuming) {
+                    $this->getExecuteCallbackStrategy($queueConsuming)->consumeCallback($message);
                 });
         }
     }
 
     protected function consumeCallback(AMQPMessage $message, QueueConsuming $queueConsuming)
     {
-        $this->processMessages([$message], [$queueConsuming]);
     }
-    
+
+    protected function batchConsumeCallback(AMQPMessage $message, QueueConsuming $queueConsuming)
+    {
+        $this->batch[$message->getDeliveryTag()] = [$message, $queueConsuming];
+
+        // if ($this->isCompleteBatch()) {
+        //    $this->runConsumeCallbacks();
+        // }
+    }
+
     public function consumeQueue(QueueConsuming $queueConsuming)
     {
         $this->queueConsumings[] = $queueConsuming;
+        if ($this->isBatchQueueConsuming($queueConsuming)) {
+            $this->executeCallbackStrategies[] = new BatchHandler($queueConsuming, $this->processMessagesFn);
+        } else {
+            $this->executeCallbackStrategies[] = new Handler($queueConsuming, $this->processMessagesFn);
+        }
+    }
+
+    private function getExecuteCallbackStrategy(QueueConsuming $queueConsuming): ExecuteCallbackStrategyInterface
+    {
+        return $this->executeCallbackStrategies[array_search($queueConsuming, $this->queueConsumings, true)];
     }
 
     /**
@@ -120,14 +150,9 @@ class Consumer
         return $this->queueConsumings;
     }
 
-    protected function preConsume()
+    private function isBatchQueueConsuming(QueueConsuming $queueConsuming)
     {
-        $this->dispatchEvent(OnConsumeEvent::NAME, new OnConsumeEvent($this));
-        $this->maybeStopConsumer();
-    }
-
-    protected function catchTimeout(AMQPTimeoutException $e)
-    {
+        return $queueConsuming->batchCount && $queueConsuming->batchCount > 1;
     }
 
     /**
@@ -146,7 +171,8 @@ class Consumer
         
         $this->lastActivityDateTime = new \DateTime();
         while ($this->channel->is_consuming()) {
-            $this->preConsume();
+            $this->dispatchEvent(OnConsumeEvent::NAME, new OnConsumeEvent($this));
+            $this->maybeStopConsumer();
 
             if ($this->forceStop) {
                 break;
@@ -167,7 +193,9 @@ class Consumer
                     break;
                 }
             } catch (AMQPTimeoutException $e) {
-                $this->catchTimeout($e);
+                foreach($this->executeCallbackStrategies as $executeCallbackStrategy) {
+                    $executeCallbackStrategy->onCatchTimeout();
+                }
                 $now = new \DateTime();
                 if ($this->gracefulMaxExecutionDateTime && $this->gracefulMaxExecutionDateTime <= $now) {
                     return $this->gracefulMaxExecutionTimeoutExitCode;
@@ -193,13 +221,22 @@ class Consumer
 
     /**
      * @param AMQPMessage[] $messages
-     * @param QueueConsuming[] $queueConsumings
+     * @param QueueConsuming $queueConsuming
      */
-    protected function processMessages(array $messages, array $queueConsumings)
+    protected function processMessages(array $messages, QueueConsuming $queueConsuming)
     {
-        foreach ($messages as $index => $message) {
-            $this->dispatchEvent(BeforeProcessingMfessageEvent::NAME,
-                new BeforeProcessingMessageEvent($this, $message, $queueConsumings[$index])
+        if (count($messages) === 0) {
+            throw new \InvalidArgumentException('Messages can not be empty');
+        }
+
+        $canPrecessMultiMessages = $this->getExecuteCallbackStrategy($queueConsuming) instanceof BatchHandler; // TODO $stragery->canPrecessMultiMessages()
+        if (!$canPrecessMultiMessages && count($messages) !== 1) {
+            throw new \InvalidArgumentException('Strategy is not supported process of multi messages');
+        }
+
+        foreach ($messages as $message) {
+            $this->dispatchEvent(BeforeProcessingMessageEvent::NAME,
+                new BeforeProcessingMessageEvent($this, $message, $queueConsuming)
             );
         }
 
@@ -207,34 +244,32 @@ class Consumer
             'consumer' => $this->name,
             'queue' => $queueConsuming->queueName,
         ] + (
-            count($messages) === 1 ? ['message' => $messages[0]] : ['messages' => $messages]
+            $canPrecessMultiMessages ? ['messages' => $messages] : ['message' => $messages[0]]
         );
 
         try {
-            $processFlags = call_user_func($queueConsuming->callback, count($messages) === 1 ? $messages[0] : $messages);
-            $processFlags = count($messages) === 1 ? [$messages[0]->getDeliveryTag() => $processFlag] : $processFlags;
+            $processFlags = call_user_func(
+                $queueConsuming->callback,
+                $canPrecessMultiMessages ? $messages : $messages[0]
+            );
 
             if (!$queueConsuming->noAck) {
-                $this->handleProcessMessages($messages, $processFlags);
-
-                foreach ($messages as $index => $message) {
-                    $channel = $message->delivery_info['channel'];
-                    $deliveryTag = $message->getDeliveryTag();
-                    $precessFlag = $processFlags[$message->getDeliveryTag()];
-                    $this->handleProcessFlag($channel, $deliveryTag, $precessFlag);
-                    $this->consumed++;
-                }
+                $processFlags = $this->handleProcessMessages($messages, $processFlags);
             }
 
-            $this->logger->debug(
-                count($messages) === 1 ?
-                    'Queue message processed' :
-                    'Queue messages processed', ['amqp' => $logAmqpContent + ['return_code' => $processFlag]]);
+            foreach ($messages as $message) {
+                $additionalParams = [];
+                if ($queueConsuming->noAck) {
+                    $additionalParams = ['return_code' => $processFlags[$message->getDeliveryTag()]];
+                }
+                $this->logger->debug('Queue message processed', ['amqp' => $logAmqpContent + $additionalParams]);
 
-            $this->dispatchEvent(
-                AfterProcessingMessageEvent::NAME,
-                new AfterProcessingMessageEvent($this, $msg)
-            );
+                $this->dispatchEvent(
+                    AfterProcessingMessageEvent::NAME,
+                    new AfterProcessingMessageEvent($this, $message)
+                );
+            }
+
             $this->maybeStopConsumer();
         } catch (Exception\StopConsumerException $e) {
             $this->logger->info('Consumer requested restart', [
@@ -252,32 +287,12 @@ class Consumer
         }
     }
 
-    private function analyzeProcessFlags($messages, $processFlags = null): array
-    {
-        if (is_array($processFlags)) {
-            if (count($processFlags) !== count($this->messages)) {
-                throw new AMQPRuntimeException(
-                    'Method batchExecute() should return an array with elements equal with the number of messages processed'
-                );
-            }
-
-            return $processFlags;
-        }
-
-        $response = [];
-        foreach ($messages as $deliveryTag => $message) {
-            $response[$deliveryTag] = $processFlags;
-        }
-
-        return $response;
-    }
 
     /**
      * @param AMQPMessage[] $messages
      * @param array|int $processFlags
-     * @see ConsumerInterface
      */
-    protected function handleProcessMessages($messages, $processFlags)
+    protected function handleProcessMessages($messages, $processFlags): array
     {
         if ($this->multiAck && count($messages) > 1 && $processFlags === ConsumerInterface::MSG_ACK) {
             // all messages have same channel
@@ -288,15 +303,39 @@ class Consumer
                 throw new InvalidArgumentException('Messages can not be processed as multi ack with different channels');
             }
             $this->channel->basic_ack(last($deliveryTag), true);
-            return;
-        }
-        foreach ($this->analyzeProcessFlags($messages, $processFlags) as $deliveryTag => $processFlag) {
-            $message = isset($messages[$deliveryTag]) ? $messages[$deliveryTag] : null;
-            if (null === $message) {
-                throw new AMQPRuntimeException(sprintf('Unknown delivery_tag %d!', $deliveryTag));
+            $this->consumed = $this->consumed + count($messages);
+            return array_combine(
+                array_map(function ($message) {
+                    return $message->getDeliveryTag();
+                }, $messages),
+                array_fill(0, count($messages), ConsumerInterface::MSG_ACK)
+            );
+        } else {
+            if (is_array($processFlags)) {
+                if (count($processFlags) !== count($this->messages)) {
+                    throw new AMQPRuntimeException(
+                        'Method batchExecute() should return an array with elements equal with the number of messages processed'
+                    );
+                }
+            } else {
+                $processFlag = $processFlags;
+                $processFlags = [];
+                foreach ($processFlags as $deliveryTag => $message) {
+                    $response[$message->getDeliveryTag()] = $processFlag;
+                }
             }
 
-            $this->handleProcessFlag($message->getChannel(), $deliveryTag, $processFlag);
+            foreach ($processFlags as $deliveryTag => $processFlag) {
+                $message = isset($messages[$deliveryTag]) ? $messages[$deliveryTag] : null;
+                if (null === $message) {
+                    throw new AMQPRuntimeException(sprintf('Unknown delivery_tag %d!', $deliveryTag));
+                }
+
+                $this->handleProcessFlag($message->getChannel(), $deliveryTag, $processFlag);
+                $this->consumed++;
+            }
+
+            return $processFlags;
         }
     }
 
@@ -340,6 +379,10 @@ class Consumer
             $this->channel->basic_cancel($consumerTag, false, true);
         }
         $this->consumerTags = [];
+
+        foreach ($this->executeCallbackStrategies as $executeCallbackStrategy) {
+            $executeCallbackStrategy->onStopConsuming();
+        }
     }
 
     /**
