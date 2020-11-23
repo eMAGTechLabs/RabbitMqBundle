@@ -110,6 +110,18 @@ class Consumer
         $executeCallbackStrategy->setProccessMessagesFn(function (array $messages) use ($queueConsuming) {
             $this->processMessages($messages, $queueConsuming);
         });
+
+        $canPrecessMultiMessages = $executeCallbackStrategy->canPrecessMultiMessages();
+        if ($canPrecessMultiMessages) {
+            if (!$queueConsuming->callback instanceof BatchConsumerInterface) {
+                throw new \InvalidArgumentException('TODO '. $queueConsuming->queueName);
+            }
+        } else {
+            if (!$queueConsuming->callback instanceof ConsumerInterface) {
+                throw new \InvalidArgumentException('TODO '. $queueConsuming->queueName);
+            }
+        }
+
         $this->executeCallbackStrategies[] = $executeCallbackStrategy;
     }
 
@@ -219,10 +231,12 @@ class Consumer
         );
 
         try {
-            $processFlags = call_user_func(
-                $queueConsuming->callback,
-                $canPrecessMultiMessages ? $messages : $messages[0]
-            );
+            $processFlags = null;
+            if ($queueConsuming->callback instanceof BatchConsumerInterface) {
+                $processFlags = $queueConsuming->callback->batchExecute($messages);
+            } else {
+                $processFlags = $queueConsuming->callback->execute($messages[0]);
+            }
 
             if (!$queueConsuming->noAck) {
                 $messages = array_combine(
@@ -282,13 +296,9 @@ class Consumer
             if (count($channels) !== array_unique($channels)) {
                 throw new InvalidArgumentException('Messages can not be processed as multi ack with different channels');
             }
+
             $this->channel->basic_ack(last($deliveryTag), true);
-
             $this->consumed = $this->consumed + count($messages);
-
-            foreach($messages as $message) {
-                unset($this->consumerTags[array_search($message->getDeliveryTag(), $this->consumerTags, true)]);
-            }
             $executeCallbackStrategy->onMessageProcessed($message);
 
             return array_combine(
@@ -299,7 +309,7 @@ class Consumer
             );
         } else {
             if (is_array($processFlags)) {
-                if (count($processFlags) !== count($this->messages)) {
+                if (count($processFlags) !== count($messages)) {
                     throw new AMQPRuntimeException(
                         'Method batchExecute() should return an array with elements equal with the number of messages processed'
                     );
@@ -331,7 +341,6 @@ class Consumer
 
                 $this->consumed++;
 
-                unset($this->consumerTags[array_search($deliveryTag, $this->consumerTags, true)]);
                 $executeCallbackStrategy->onMessageProcessed($message);
             }
 

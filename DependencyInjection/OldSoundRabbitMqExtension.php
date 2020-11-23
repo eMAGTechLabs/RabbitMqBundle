@@ -265,7 +265,7 @@ class OldSoundRabbitMqExtension extends Extension
                 $queueConsumingDef = new Definition(QueueConsuming::class);
                 $queueConsumingDef->setProperties([
                     'queueName' => $consumeQueue['queue'],
-                    'callback' => [new Reference($consumeQueue['callback']), 'execute'],
+                    'callback' => new Reference($consumeQueue['callback']),
                     //'consumerTag' => $consumeQueue['consumer_tag'],
                     //'noLocal' => $consumeQueue['no_local'],
                 ]);

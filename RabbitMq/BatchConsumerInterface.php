@@ -7,9 +7,8 @@ use PhpAmqpLib\Message\AMQPMessage;
 interface BatchConsumerInterface
 {
     /**
-     * @param   AMQPMessage[]   $messages
-     *
-     * @return  array|bool
+     * @param AMQPMessage[] $messages
+     * @return array|int
      */
     public function batchExecute(array $messages);
 }

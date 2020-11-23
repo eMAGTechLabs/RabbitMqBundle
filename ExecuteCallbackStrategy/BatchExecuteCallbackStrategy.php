@@ -6,13 +6,10 @@ use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 
-class BatchExecuteCallbackStrategy implements ExecuteCallbackStrategyInterface
+class BatchExecuteCallbackStrategy extends AbstractExecuteCallbackStrategy
 {
     /** @var int */
     private $batchCount;
-    /** @var callable */
-    private $proccessMessagesFn;
-
     /** @var AMQPMessage[] */
     protected $messagesBatch = [];
 
@@ -21,31 +18,17 @@ class BatchExecuteCallbackStrategy implements ExecuteCallbackStrategyInterface
         $this->batchCount = $batchCount;
     }
 
-    public function setProccessMessagesFn(callable $proccessMessagesFn)
-    {
-        $this->proccessMessagesFn  = $proccessMessagesFn;
-    }
-
     public function canPrecessMultiMessages(): bool
     {
         return true;
     }
 
-    /**
-     * @param AMQPMessage[] $meesages
-     */
-    protected function proccessMessages(array $messages)
-    {
-        call_user_func($this->proccessMessagesFn, $messages);
-    }
-
     public function consumeCallback(AMQPMessage $message)
     {
-        $this->batch[$message->getDeliveryTag()] = $message;
+        $this->messagesBatch[$message->getDeliveryTag()] = $message;
 
         if ($this->isBatchCompleted()) {
             $this->proccessMessages($this->messagesBatch);
-            // $this->messagesBatch = [];
         }
     }
 
@@ -65,13 +48,12 @@ class BatchExecuteCallbackStrategy implements ExecuteCallbackStrategyInterface
     {
         if (!$this->isEmptyBatch()) {
             $this->proccessMessages($this->messagesBatch);
-            // $this->messagesBatch = [];
         }
     }
 
     protected function isBatchCompleted(): bool
     {
-        return count($this->batch) === $this->batchCount;
+        return count($this->messagesBatch) === $this->batchCount;
     }
 
     /**
@@ -79,6 +61,6 @@ class BatchExecuteCallbackStrategy implements ExecuteCallbackStrategyInterface
      */
     protected function isBatchEmpty()
     {
-        return count($this->batch) === 0;
+        return count($this->messagesBatch) === 0;
     }
 }

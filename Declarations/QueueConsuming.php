@@ -2,6 +2,9 @@
 
 namespace OldSound\RabbitMqBundle\Declarations;
 
+use OldSound\RabbitMqBundle\RabbitMq\BatchConsumerInterface;
+use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
+
 class QueueConsuming
 {
     /** @var string */
@@ -18,7 +21,7 @@ class QueueConsuming
     public $noAck = false;
     /** @var bool */
     public $nowait = false;
-    /** @var callable */
+    /** @var ConsumerInterface|BatchConsumerInterface */
     public $callback;
 
     /** @var int|null */
