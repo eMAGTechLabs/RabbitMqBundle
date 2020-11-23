@@ -23,9 +23,8 @@ class QueueConsuming
     public $nowait = false;
     /** @var ConsumerInterface|BatchConsumerInterface */
     public $callback;
-
-    /** @var int|null */
-    public $qusPrefetchSize;
-    /** @var int|null */
-    public $qusPrefetchCount;
+    /** @var int */
+    public $qosPrefetchCount = 0;
+    /** @var int */
+    public $qosPrefetchSize = 0;
 }

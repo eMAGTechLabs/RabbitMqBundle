@@ -195,6 +195,8 @@ class Configuration implements ConfigurationInterface
                                     ->children()
                                         ->scalarNode('queue')->isRequired()->end()
                                         ->scalarNode('callback')->isRequired()->end()
+                                        ->scalarNode('qos_prefetch_size')->defaultValue(0)->end()
+                                        ->scalarNode('qos_prefetch_count')->defaultValue(0)->end()
                                         ->scalarNode('batch_count')->end()
                                         ->booleanNode('exclusive')->end()
                                         ->booleanNode('auto_delete')->end()

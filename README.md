@@ -1026,6 +1026,26 @@ By default a consumer or producer will declare everything it needs with RabbitMQ
 Be careful using this, when exchanges or queues are not defined, there will be errors. When you've changed any configuration you need to run the above setup-fabric command to declare your configuration.
 
 
+## kubernetes receipt ##
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: queue-consumer
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: bill-consumer
+    image: my-symfony-app:latest
+    command: ['bin/console', 'rabbitmq:consume', '--skip-declare', 'bills']
+  initContainers:
+  - name: declare-rabbitmq
+    image: my-symfony-app:latest
+    command: ['bin/console', 'rabbitmq:declare']
+```
+
 ## How To Contribute ##
 
 To contribute just open a Pull Request with your new code taking into account that if you add new features or modify existing ones you have to document in this README what they do. If you break BC then you have to document it as well. Also you have to update the CHANGELOG. So:

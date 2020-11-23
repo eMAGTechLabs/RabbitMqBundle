@@ -265,9 +265,12 @@ class OldSoundRabbitMqExtension extends Extension
             $definition->addTag('old_sound_rabbit_mq.consumer');
             foreach($consumer['consumeQueues'] as $index => $consumeQueue) {
                 $queueConsumingDef = new Definition(QueueConsuming::class);
+                dump($consumeQueue);
                 $queueConsumingDef->setProperties([
                     'queueName' => $consumeQueue['queue'],
                     'callback' => new Reference($consumeQueue['callback']),
+                    //'qosPrefetchSize' => $consumeQueue['qos_prefetch_size'],
+                    'qosPrefetchCount' => $consumeQueue['qos_prefetch_count'],
                     //'consumerTag' => $consumeQueue['consumer_tag'],
                     //'noLocal' => $consumeQueue['no_local'],
                 ]);

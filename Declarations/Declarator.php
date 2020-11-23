@@ -3,11 +3,13 @@
 namespace OldSound\RabbitMqBundle\Declarations;
 
 use OldSound\RabbitMqBundle\RabbitMq\BindingDeclaration;
+use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use OldSound\RabbitMqBundle\RabbitMq\ExchangeDeclaration;
 use OldSound\RabbitMqBundle\RabbitMq\QueueDeclaration;
 use PhpAmqpLib\Channel\AMQPChannel;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class Declarator
 {
@@ -98,12 +100,7 @@ class Declarator
 
     public function declareForExchange(ExchangeDeclaration $exchange, DeclarationsRegistry $declarationsRegistry) 
     {
-        // TODO move
-        $bindings = array_filter($declarationsRegistry->bindings, function ($binding) use ($exchange) {
-           return $binding->exchange === $exchange->name || 
-               $binding->destinationIsExchange && $binding->destination === $exchange->name;
-        });
-
+        $bindings = $declarationsRegistry->getBindingsByExchange($exchange);
         $queues = array_filter($bindings, function ($binding) use($exchange) {
             false === $binding->destinationIsExchange && $binding->destination == $exchange->name;
         });
@@ -111,6 +108,26 @@ class Declarator
         $this->declareExchanges([$exchange]);
         $this->declareQueues($queues);
         $this->declareBindings($bindings);
+    }
+
+    public function declareForQueueDeclaration(QueueDeclaration $queueDeclaration, DeclarationsRegistry $declarationsRegistry)
+    {
+        $consumerQueues = array_filter($declarationsRegistry->queues, function ($queue) use ($queueDeclaration) {
+            return $queue->name === $queueDeclaration->name;
+        });
+
+        foreach ($consumerQueues as $queue) {
+            $bindings = $queue->bindings;
+            if (count($bindings) === 0) {
+                $queue->bindings = array_filter($this->declarationsRegistry->bindings, function ($binding) use ($queue) {
+                    return !$binding->destinationIsExchange && $binding->destination === $queue->name;
+                });
+            }
+            $exchanges = []; // TODO
+            $this->declareForExchange($exchanges);
+            $this->declareForQueue($queue);
+            $this->declareBindings($bindings);
+        }
     }
     
     public function declareForQueue(QueueDeclaration $queue)

@@ -89,6 +89,8 @@ class Consumer
     protected function setup()
     {
         foreach($this->queueConsumings as $index => $queueConsuming) {
+            $this->channel->basic_qos($queueConsuming->qosPrefetchSize, $queueConsuming->qosPrefetchCount, false);
+
             $this->consumerTags[] = $this->channel->basic_consume(
                 $queueConsuming->queueName,
                 $queueConsuming->consumerTag ?

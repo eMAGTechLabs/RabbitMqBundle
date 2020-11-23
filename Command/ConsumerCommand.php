@@ -36,12 +36,12 @@ class ConsumerCommand extends Command
     protected function configure()
     {
         $this
+
             ->addArgument('name', InputArgument::REQUIRED, 'Consumer Name')
             ->addOption('messages', 'm', InputOption::VALUE_OPTIONAL, 'Messages to consume', 0)
             ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process (MB)', null)
             ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Enable Debugging')
-            // TODO ->addOption('declare', null, InputOption::VALUE_OPTIONAL, 'Ignore declarate', null)
-            // TODO ->addOption('ignoreDeclare', null, InputOption::VALUE_OPTIONAL, 'Ignore declarate', null)
+            ->addOption('skip-declare', null, InputOption::VALUE_NONE, 'Skip declare exhanges, queues and bindings')
             ->addOption('without-signals', 'w', InputOption::VALUE_NONE, 'Disable catching of system signals')
         ;
         $this->setDescription('Executes a consumer');
@@ -110,10 +110,8 @@ class ConsumerCommand extends Command
         if (0 > (int) $this->amount) {
             throw new \InvalidArgumentException("The -m option should be null or greater than 0");
         }
-        
-        $declare = true; // TODO
 
-        if ($declare) {
+        if (!$input->getOption('skip-declare')) {
             $this->declareForConsumer($consumer, $output);
         }
 
@@ -126,24 +124,8 @@ class ConsumerCommand extends Command
         $declarator->setLogger(
             new ConsoleLogger($output)
         );
-
-        $consumingQueueNames = array_map(function ($queueConsuming) {
-            return $queueConsuming->queueName;
-        }, $consumer->getQueueConsumings());
-
-        $consumerQueues = array_filter($this->declarationsRegistry->queues, function ($queue) use ($consumingQueueNames) {
-            return in_array($queue->name, $consumingQueueNames, true);
-        });
-
-        foreach ($consumerQueues as $queue) {
-            $bindings = $queue->bindings;
-            if (count($bindings) === 0) { // TODO move
-                $queue->bindings = array_filter($this->declarationsRegistry->bindings, function ($binding) use ($queue) {
-                    return !$binding->destinationIsExchange && $binding->destination === $queue->name;
-                });
-            }
-
-            $declarator->declareForQueue($queue);
+        foreach($consumer->getQueueConsumings() as $queueConsuming) {
+            $declarator->declareForQueueDeclaration($queueConsuming, $this->declarationsRegistry);
         }
     }
     
