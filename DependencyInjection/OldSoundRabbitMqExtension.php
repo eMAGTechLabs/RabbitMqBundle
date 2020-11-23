@@ -7,6 +7,7 @@ use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
 use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\SimpleExecuteCallbackStrategy;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy;
+use OldSound\RabbitMqBundle\RabbitMq\BindingDeclaration;
 use OldSound\RabbitMqBundle\RabbitMq\ExchangeDeclaration;
 use OldSound\RabbitMqBundle\RabbitMq\QueueDeclaration;
 use PhpAmqpLib\Channel\AMQPChannel;
@@ -69,6 +70,9 @@ class OldSoundRabbitMqExtension extends Extension
         foreach ($this->loadQueues() as $queue) {
             $declarationRegistryDef->addMethodCall('addQueue', [$queue]);
         };
+        foreach ($this->loadBindings() as $binding) {
+            $declarationRegistryDef->addMethodCall('addBinding', [$binding]);
+        };
         //$this->loadBindings();
         $this->loadProducers();
         //$this->loadConsumers();;
@@ -95,19 +99,20 @@ class OldSoundRabbitMqExtension extends Extension
     }
 
     /**
-     * @return ExchangeDeclaration[]
+     * @return Definition[]
      */
     protected function loadExchanges(): array
     {
         return array_map(function ($exchange) {
             $exchangeDeclaration = new Definition(ExchangeDeclaration::class);
             $exchangeDeclaration->setProperties($exchange);
+            $this->container->setDefinition('old_sound_rabbit_mq.exchange.'.$exchange['name'], $exchangeDeclaration);
             return $exchangeDeclaration;
         }, $this->config['declarations']['exchanges']);
     }
 
     /**
-     * @return QueueDeclaration[]
+     * @return Definition[]
      */
     protected function loadQueues(): array
     {
@@ -118,6 +123,28 @@ class OldSoundRabbitMqExtension extends Extension
             $queueDeclaration->setProperties($queue);
             return $queueDeclaration;
         }, $queues);
+    }
+
+    protected function loadBindings(): array
+    {
+        $definitions = [];
+        foreach ($this->config['declarations']['bindings'] as $binding) {
+            ksort($binding);
+            $definition = new Definition(BindingDeclaration::class);
+            $definition->addTag('old_sound_rabbit_mq.binding');
+            $definition->setProperties([
+                'exchange' => new Reference('old_sound_rabbit_mq.exchange.'.$binding['exchange']),
+                'destinationIsExchange' => $binding['destination_is_exchange'],
+                'destination' => $binding['destination'],
+                'routingKey' => $binding['routing_key'],
+                // TODO 'arguments' => $binding['arguments'],
+                //'nowait' => $binding['nowait'],
+            ]);
+
+            $definitions[] = $definition;
+        }
+
+        return $definitions;
     }
 
     protected function loadConnections()
@@ -166,31 +193,6 @@ class OldSoundRabbitMqExtension extends Extension
     public static function getChannelFromConnection(AbstractConnection $connection)
     {
         return $connection->channel();
-    }
-
-    protected function loadBindings()
-    {
-        if ($this->config['sandbox']) {
-            return;
-        }
-        foreach ($this->config['declarations']['bindings'] as $binding) {
-            ksort($binding);
-            $definition = new Definition($binding['class']);
-            $definition->addTag('old_sound_rabbit_mq.binding');
-            $definition->addMethodCall('setArguments', array($binding['arguments']));
-            $definition->addMethodCall('setDestination', array($binding['destination']));
-            $definition->addMethodCall('setDestinationIsExchange', array($binding['destination_is_exchange']));
-            $definition->addMethodCall('setExchange', array($binding['exchange']));
-            $definition->addMethodCall('isNowait', array($binding['nowait']));
-            $definition->addMethodCall('setRoutingKey', array($binding['routing_key']));
-            $this->injectConnection($definition, $binding['connection']);
-            $key = md5(json_encode($binding));
-            if ($this->collectorEnabled) {
-                // in the context of a binding, I don't thing logged channels are needed?
-                $this->injectLoggedChannel($definition, $key, $binding['connection']);
-            }
-            $this->container->setDefinition(sprintf('old_sound_rabbit_mq.binding.%s', $key), $definition);
-        }
     }
 
     protected function loadProducers()

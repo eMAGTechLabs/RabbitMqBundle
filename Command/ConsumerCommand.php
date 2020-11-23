@@ -14,6 +14,7 @@ use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Logger\ConsoleLogger;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ConsumerCommand extends Command
@@ -113,15 +114,18 @@ class ConsumerCommand extends Command
         $declare = true; // TODO
 
         if ($declare) {
-            $this->declareForConsumer($consumer);
+            $this->declareForConsumer($consumer, $output);
         }
 
         return $consumer->consume($this->amount);
     }
 
-    private function declareForConsumer(Consumer $consumer)
+    private function declareForConsumer(Consumer $consumer, OutputInterface $output)
     {
         $declarator = new Declarator($consumer->getChannel());
+        $declarator->setLogger(
+            new ConsoleLogger($output)
+        );
 
         $consumingQueueNames = array_map(function ($queueConsuming) {
             return $queueConsuming->queueName;
@@ -130,7 +134,15 @@ class ConsumerCommand extends Command
         $consumerQueues = array_filter($this->declarationsRegistry->queues, function ($queue) use ($consumingQueueNames) {
             return in_array($queue->name, $consumingQueueNames, true);
         });
+
         foreach ($consumerQueues as $queue) {
+            $bindings = $queue->bindings;
+            if (count($bindings) === 0) { // TODO move
+                $queue->bindings = array_filter($this->declarationsRegistry->bindings, function ($binding) use ($queue) {
+                    return !$binding->destinationIsExchange && $binding->destination === $queue->name;
+                });
+            }
+
             $declarator->declareForQueue($queue);
         }
     }

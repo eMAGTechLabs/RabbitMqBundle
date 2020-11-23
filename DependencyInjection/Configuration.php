@@ -111,6 +111,7 @@ class Configuration implements ConfigurationInterface
                                 ->children()
                                     ->scalarNode('exchange')->isRequired()->end()
                                     ->scalarNode('destination')->isRequired()->end()
+                                    ->booleanNode('destination_is_exchange')->defaultFalse()->end()
                                     ->scalarNode('routing_key')->defaultValue(null)->end()
                                 ->end()
                             ->end()

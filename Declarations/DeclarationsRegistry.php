@@ -24,4 +24,9 @@ class DeclarationsRegistry
     {
         $this->queues[] = $queueDeclaration;    
     }
+
+    public function addBinding(BindingDeclaration $bindingDeclaration)
+    {
+        $this->bindings[] = $bindingDeclaration;
+    }
 }

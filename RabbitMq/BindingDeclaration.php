@@ -4,7 +4,7 @@ namespace OldSound\RabbitMqBundle\RabbitMq;
 
 class BindingDeclaration
 {
-    /** @var string */
+    /** @var ExchangeDeclaration */
     public $exchange;
 
     /** @var string */

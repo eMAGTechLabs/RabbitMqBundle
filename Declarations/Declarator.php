@@ -1,22 +1,24 @@
 <?php
 
-
 namespace OldSound\RabbitMqBundle\Declarations;
-
 
 use OldSound\RabbitMqBundle\RabbitMq\BindingDeclaration;
 use OldSound\RabbitMqBundle\RabbitMq\ExchangeDeclaration;
 use OldSound\RabbitMqBundle\RabbitMq\QueueDeclaration;
 use PhpAmqpLib\Channel\AMQPChannel;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\NullLogger;
 
 class Declarator
 {
+    use LoggerAwareTrait;
     /** @var AMQPChannel */
     private $channel;
     
     public function __construct(AMQPChannel $channel)
     {
         $this->channel = $channel;
+        $this->logger = new NullLogger();
     }
 
     /**
@@ -36,6 +38,8 @@ class Declarator
                 $exchange->arguments,
                 $exchange->ticket,
             );
+
+            $this->logger->info(sprintf('Exchange is declared successfully', ['exchange' => $exchange]));
         }
     }
 
@@ -55,6 +59,8 @@ class Declarator
                 $queue->arguments,
                 $queue->ticket,
             );
+
+            $this->logger->info(sprintf('Queue is declared successfully', ['queue' => $queue]));
         }
     }
 
@@ -64,7 +70,7 @@ class Declarator
     public function declareBindings(array $bindings) 
     {
         foreach ($bindings as $binding) {
-            if ($this->destinationIsExchange) {
+            if ($binding->destinationIsExchange) {
                 foreach ($binding->routingKeys as $routingKey) {
                     $this->channel->exchange_bind(
                         $binding->destination,
@@ -85,11 +91,14 @@ class Declarator
                     );
                 }
             }
+
+            $this->logger->info(sprintf('Binding is declared successfully', ['binding' => $binding]));
         }
     }
 
     public function declareForExchange(ExchangeDeclaration $exchange, DeclarationsRegistry $declarationsRegistry) 
     {
+        // TODO move
         $bindings = array_filter($declarationsRegistry->bindings, function ($binding) use ($exchange) {
            return $binding->exchange === $exchange->name || 
                $binding->destinationIsExchange && $binding->destination === $exchange->name;
@@ -107,7 +116,7 @@ class Declarator
     public function declareForQueue(QueueDeclaration $queue)
     {
         $exchanges = array_map(function ($binding) {
-            return $binding->getExchange();
+            return $binding->exchange;
         }, $queue->bindings);
 
         $this->declareExchanges($exchanges);

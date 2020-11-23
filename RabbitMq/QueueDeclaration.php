@@ -3,7 +3,9 @@
 
 namespace OldSound\RabbitMqBundle\RabbitMq;
 
-
+/**
+ * @TODO move
+ */
 class QueueDeclaration
 {
     public $name;
@@ -30,7 +32,10 @@ class QueueDeclaration
             'ticket' => null
         ));
     }
-    
+
+    /**
+     *  TODO delete
+     */
     public function declure() {
         foreach ($this->queues as $name => $options) {
             list($queueName, ,) = $this->getChannel()->queue_declare($name, $options['passive'],
