@@ -85,7 +85,7 @@ class Consumer
     {
         return $this->channel;
     }
-    
+
     protected function setup()
     {
         foreach($this->queueConsumings as $index => $queueConsuming) {

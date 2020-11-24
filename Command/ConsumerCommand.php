@@ -125,7 +125,7 @@ class ConsumerCommand extends Command
             new ConsoleLogger($output)
         );
         foreach($consumer->getQueueConsumings() as $queueConsuming) {
-            $declarator->declareForQueueDeclaration($queueConsuming, $this->declarationsRegistry);
+            $declarator->declareForQueueDeclaration($queueConsuming->queueName, $this->declarationsRegistry);
         }
     }
     

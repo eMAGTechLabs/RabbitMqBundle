@@ -110,24 +110,32 @@ class Declarator
         $this->declareBindings($bindings);
     }
 
-    public function declareForQueueDeclaration(QueueDeclaration $queueDeclaration, DeclarationsRegistry $declarationsRegistry)
+    public function declareForQueueDeclaration(string $queueName, DeclarationsRegistry $declarationsRegistry)
     {
-        $consumerQueues = array_filter($declarationsRegistry->queues, function ($queue) use ($queueDeclaration) {
-            return $queue->name === $queueDeclaration->name;
+        $consumerQueues = array_filter($declarationsRegistry->queues, function ($queue) use ($queueName) {
+            return $queue->name === $queueName;
         });
 
+        $bindings = [];
         foreach ($consumerQueues as $queue) {
-            $bindings = $queue->bindings;
+            $bindings += $queue->bindings;
             if (count($bindings) === 0) {
-                $queue->bindings = array_filter($this->declarationsRegistry->bindings, function ($binding) use ($queue) {
+                $queue->bindings = array_filter($declarationsRegistry->bindings, function ($binding) use ($queue) {
                     return !$binding->destinationIsExchange && $binding->destination === $queue->name;
                 });
             }
-            $exchanges = []; // TODO
-            $this->declareForExchange($exchanges);
-            $this->declareForQueue($queue);
-            $this->declareBindings($bindings);
+            $exchanges = [];
+            foreach ($bindings as $binding) {
+                $exchanges[] = $binding->exchange;
+                if ($binding->destinationIsExchange) {
+                    $exchanges[] = $binding->destination;
+                }
+            }
         }
+
+        $this->declareExchanges($exchanges);
+        $this->declareQueues($consumerQueues);
+        $this->declareBindings($bindings);
     }
     
     public function declareForQueue(QueueDeclaration $queue)

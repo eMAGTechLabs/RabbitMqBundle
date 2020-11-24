@@ -52,7 +52,8 @@
             <tag name="console.command" command="rabbitmq:rpc-server" />
         </service>
 
-        <service id="old_sound_rabbit_mq.command.setup_fabric_command" class="OldSound\RabbitMqBundle\Command\SetupFabricCommand">
+        <service id="old_sound_rabbit_mq.command.setup_fabric_command" class="OldSound\RabbitMqBundle\Command\DeclareCommand">
+            <argument type="service" id="old_sound_rabbit_mq.declaration_registry"></argument>
             <tag name="console.command" command="rabbitmq:setup-fabric" />
         </service>
 

@@ -17,10 +17,10 @@ class QueueDeclaration
     public $arguments;
     public $ticket;
     public $declare;
-    /** @var BindingDeclaration[] */
-    public $bindings = [];
-    
-    public function setAnonymus() {
+
+    // TODO remove
+    public function setAnonymus()
+    {
         $this->setQueueOptions(array(
             'name' => '',
             'passive' => false,

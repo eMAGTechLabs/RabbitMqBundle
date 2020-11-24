@@ -11,7 +11,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 
-class SetupFabricCommand extends Command
+class DeclareCommand extends Command
 {
     use ContainerAwareTrait;
 
