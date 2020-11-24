@@ -218,6 +218,9 @@ class OldSoundRabbitMqExtension extends Extension
             if (isset($consumer['idle_timeout_exit_code'])) {
                 $definition->addMethodCall('setIdleTimeoutExitCode', array($consumer['idle_timeout_exit_code']));
             }
+            if (isset($consumer['timeout_wait'])) {
+                $definition->addMethodCall('setTimeoutWait', array($consumer['timeout_wait']));
+            }
             if (isset($consumer['graceful_max_execution'])) {
                 $definition->addMethodCall(
                     'setGracefulMaxExecutionDateTimeFromSecondsInTheFuture',
@@ -295,6 +298,9 @@ class OldSoundRabbitMqExtension extends Extension
             if (isset($consumer['idle_timeout_exit_code'])) {
                 $definition->addMethodCall('setIdleTimeoutExitCode', array($consumer['idle_timeout_exit_code']));
             }
+            if (isset($consumer['timeout_wait'])) {
+                $definition->addMethodCall('setTimeoutWait', array($consumer['timeout_wait']));
+            }
             if (isset($consumer['graceful_max_execution'])) {
                 $definition->addMethodCall(
                     'setGracefulMaxExecutionDateTimeFromSecondsInTheFuture',
@@ -367,6 +373,9 @@ class OldSoundRabbitMqExtension extends Extension
             }
             if (isset($consumer['idle_timeout_exit_code'])) {
                 $definition->addMethodCall('setIdleTimeoutExitCode', array($consumer['idle_timeout_exit_code']));
+            }
+            if (isset($consumer['timeout_wait'])) {
+                $definition->addMethodCall('setTimeoutWait', array($consumer['timeout_wait']));
             }
             if (isset($consumer['graceful_max_execution'])) {
                 $definition->addMethodCall(
@@ -462,7 +471,7 @@ class OldSoundRabbitMqExtension extends Extension
     protected function loadAnonConsumers(): void
     {
         foreach ($this->config['anon_consumers'] as $key => $anon) {
-            $definition = new Definition('%old_sound_rabbit_mq.anon_consumer.class%');     
+            $definition = new Definition('%old_sound_rabbit_mq.anon_consumer.class%');
             $definition
                 ->setPublic(true)
                 ->addTag('old_sound_rabbit_mq.base_amqp')
