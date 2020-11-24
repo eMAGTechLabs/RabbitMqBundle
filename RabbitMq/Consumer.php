@@ -300,7 +300,7 @@ class Consumer extends BaseConsumer
         return $waitTimeout;
     }
 
-    public function setLastActivityDateTime(\DateTime $dateTime)
+    public function setLastActivityDateTime(\DateTime $dateTime): void
     {
         $this->lastActivityDateTime = $dateTime;
     }

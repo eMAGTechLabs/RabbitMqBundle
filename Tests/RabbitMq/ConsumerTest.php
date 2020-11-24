@@ -362,7 +362,7 @@ class ConsumerTest extends TestCase
         $consumer->consume(1);
     }
 
-    public function testTimeoutWait()
+    public function testTimeoutWait(): void
     {
         // set up amqp connection
         $amqpConnection = $this->prepareAMQPConnection();
@@ -404,7 +404,7 @@ class ConsumerTest extends TestCase
         $consumer->consume(1);
     }
 
-    public function testTimeoutWaitWontWaitPastGracefulMaxExecutionTimeout()
+    public function testTimeoutWaitWontWaitPastGracefulMaxExecutionTimeout(): void
     {
         // set up amqp connection
         $amqpConnection = $this->prepareAMQPConnection();
@@ -441,7 +441,7 @@ class ConsumerTest extends TestCase
         $consumer->consume(1);
     }
 
-    public function testTimeoutWaitWontWaitPastIdleTimeout()
+    public function testTimeoutWaitWontWaitPastIdleTimeout(): void
     {
         // set up amqp connection
         $amqpConnection = $this->prepareAMQPConnection();

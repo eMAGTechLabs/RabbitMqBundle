@@ -65,7 +65,7 @@ abstract class BaseConsumer extends BaseAmqp implements DequeuerInterface
         $this->getChannel()->basic_cancel($this->getConsumerTag(), false, true);
     }
 
-    protected function setupConsumer(): void
+    public function setupConsumer(): void
     {
         if ($this->autoSetupFabric) {
             $this->setupFabric();

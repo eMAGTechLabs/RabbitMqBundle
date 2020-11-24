@@ -49,7 +49,7 @@ class MultipleConsumer extends Consumer
         $this->context = $context;
     }
 
-    protected function setupConsumer(): void
+    public function setupConsumer(): void
     {
         $this->mergeQueues();
 

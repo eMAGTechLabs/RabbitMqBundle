@@ -39,7 +39,7 @@ class DynamicConsumer extends Consumer{
     }
 
 
-    protected function setupConsumer(): void
+    public function setupConsumer(): void
     {   
         $this->mergeQueueOptions();
         parent::setupConsumer();
