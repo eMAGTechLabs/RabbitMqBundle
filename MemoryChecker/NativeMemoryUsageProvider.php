@@ -9,7 +9,10 @@ namespace OldSound\RabbitMqBundle\MemoryChecker;
  */
 class NativeMemoryUsageProvider
 {
-    public function getMemoryUsage(): int
+    /**
+     * @return int
+     */
+    public function getMemoryUsage()
     {
         return memory_get_usage(true);
     }
