@@ -60,7 +60,7 @@ abstract class BaseAmqp
     );
 
     /**
-     * @var EventDispatcherInterface|null
+     * @var ContractsEventDispatcherInterface|null
      */
     protected $eventDispatcher = null;
 
@@ -235,7 +235,7 @@ abstract class BaseAmqp
         }
     }
 
-    public function setEventDispatcher(EventDispatcherInterface $eventDispatcher): BaseAmqp
+    public function setEventDispatcher(ContractsEventDispatcherInterface $eventDispatcher): BaseAmqp
     {
         $this->eventDispatcher = $eventDispatcher;
 
@@ -252,7 +252,7 @@ abstract class BaseAmqp
         }
     }
 
-    public function getEventDispatcher(): ?EventDispatcherInterface
+    public function getEventDispatcher(): ?ContractsEventDispatcherInterface
     {
         return $this->eventDispatcher;
     }

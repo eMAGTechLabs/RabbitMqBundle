@@ -51,6 +51,7 @@ class BaseAmqpTest extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
+        /** @var ContractsEventDispatcherInterface|MockObject $eventDispatcher */
         $eventDispatcher = $this->getMockBuilder('Symfony\Contracts\EventDispatcher\EventDispatcherInterface')
             ->disableOriginalConstructor()
             ->getMock();
