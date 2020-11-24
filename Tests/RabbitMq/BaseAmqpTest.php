@@ -3,6 +3,7 @@
 namespace OldSound\RabbitMqBundle\Tests\RabbitMq;
 
 use PHPUnit\Framework\MockObject\MockObject;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface as ContractsEventDispatcherInterface;
 use OldSound\RabbitMqBundle\Event\AMQPEvent;
 use OldSound\RabbitMqBundle\RabbitMq\BaseAmqp;
@@ -51,8 +52,8 @@ class BaseAmqpTest extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
-        /** @var ContractsEventDispatcherInterface|MockObject $eventDispatcher */
-        $eventDispatcher = $this->getMockBuilder('Symfony\Contracts\EventDispatcher\EventDispatcherInterface')
+        /** @var EventDispatcherInterface|MockObject $eventDispatcher */
+        $eventDispatcher = $this->getMockBuilder('Symfony\Component\EventDispatcher\EventDispatcherInterface')
             ->disableOriginalConstructor()
             ->getMock();
 
