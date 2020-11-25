@@ -116,16 +116,15 @@ class Declarator
             return $queue->name === $queueName;
         });
 
+        /** @var BindingDeclaration[] $bindings */
         $bindings = [];
+        $exchanges = [];
         foreach ($consumerQueues as $queue) {
-            $bindings += $queue->bindings;
-            if (count($bindings) === 0) {
-                $queue->bindings = array_filter($declarationsRegistry->bindings, function ($binding) use ($queue) {
-                    return !$binding->destinationIsExchange && $binding->destination === $queue->name;
-                });
-            }
-            $exchanges = [];
-            foreach ($bindings as $binding) {
+            $b = array_filter($declarationsRegistry->bindings, function ($binding) use ($queue) {
+                return !$binding->destinationIsExchange && $binding->destination === $queue->name;
+            });
+            $bindings += $b;
+            foreach ($b as $binding) {
                 $exchanges[] = $binding->exchange;
                 if ($binding->destinationIsExchange) {
                     $exchanges[] = $binding->destination;

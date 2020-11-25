@@ -126,7 +126,7 @@ class OldSoundRabbitMqExtension extends Extension
             $queueDeclaration = new Definition(QueueDeclaration::class);
             $queueDeclaration->setProperties($queue);
 
-            $this->loadBindings($queue['bindings'], null, $queue, false);
+            $this->loadBindings($queue['bindings'], null, $queue['name'], false);
 
             return $queueDeclaration;
         }, $queues);
@@ -174,9 +174,9 @@ class OldSoundRabbitMqExtension extends Extension
                     ? '%old_sound_rabbit_mq.lazy.'.$connectionSuffix.'%'
                     : '%old_sound_rabbit_mq.'.$connectionSuffix.'%';
 
-            $definition = new Definition('%old_sound_rabbit_mq.connection_factory.class%', array(
+            $definition = new Definition('%old_sound_rabbit_mq.connection_factory.class%', [
                 $classParam, $connection,
-            ));
+            ]);
             if (isset($connection['connection_parameters_provider'])) {
                 $definition->addArgument(new Reference($connection['connection_parameters_provider']));
                 unset($connection['connection_parameters_provider']);
@@ -188,7 +188,7 @@ class OldSoundRabbitMqExtension extends Extension
             $definition = new Definition($classParam);
             if (method_exists($definition, 'setFactory')) {
                 // to be inlined in services.xml when dependency on Symfony DependencyInjection is bumped to 2.6
-                $definition->setFactory(array(new Reference($factoryName), 'createConnection'));
+                $definition->setFactory([new Reference($factoryName), 'createConnection']);
             } else {
                 // to be removed when dependency on Symfony DependencyInjection is bumped to 2.6
                 $definition->setFactoryService($factoryName);
@@ -204,6 +204,7 @@ class OldSoundRabbitMqExtension extends Extension
                 new Reference($connectionAliase)
             ]);
             $channelDef->setFactory([self::class, 'getChannelFromConnection']);
+            $channelDef->setPublic(true);
             $this->container->setDefinition(sprintf('old_sound_rabbit_mq.channel.%s', $key), $channelDef);
         }
     }
@@ -283,7 +284,6 @@ class OldSoundRabbitMqExtension extends Extension
             $definition->addTag('old_sound_rabbit_mq.consumer');
             foreach($consumer['consumeQueues'] as $index => $consumeQueue) {
                 $queueConsumingDef = new Definition(QueueConsuming::class);
-                dump($consumeQueue);
                 $queueConsumingDef->setProperties([
                     'queueName' => $consumeQueue['queue'],
                     'callback' => new Reference($consumeQueue['callback']),

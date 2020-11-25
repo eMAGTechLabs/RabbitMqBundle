@@ -36,7 +36,6 @@ class ConsumerCommand extends Command
     protected function configure()
     {
         $this
-
             ->addArgument('name', InputArgument::REQUIRED, 'Consumer Name')
             ->addOption('messages', 'm', InputOption::VALUE_OPTIONAL, 'Messages to consume', 0)
             ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process (MB)', null)

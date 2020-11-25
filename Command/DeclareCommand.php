@@ -6,6 +6,8 @@ use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
 use OldSound\RabbitMqBundle\Declarations\Declarator;
 use OldSound\RabbitMqBundle\RabbitMq\DynamicConsumer;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\InvalidOptionException;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -18,6 +20,7 @@ class DeclareCommand extends Command
     public function __construct(
         DeclarationsRegistry $declarationsRegistry
     ) {
+        parent::__construct();
         $this->declarationsRegistry = $declarationsRegistry;
     }
 
@@ -25,7 +28,7 @@ class DeclareCommand extends Command
     {
         $this
             ->setName('rabbitmq:declare')
-            ->addOption('connection', 'c', InputOption::VALUE_OPTIONAL, 'Rabbitmq connection name', 'default')
+            ->addArgument('connection', InputArgument::OPTIONAL, 'Rabbitmq connection name', 'default')
             ->setDescription('Sets up the Rabbit MQ fabric')
             ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Enable Debugging')
         ;
@@ -37,10 +40,11 @@ class DeclareCommand extends Command
             define('AMQP_DEBUG', (bool) $input->getOption('debug'));
         }
 
-        $channelAlias = sprintf('old_sound_rabbit_mq.channel.%s', $input->getOption('connection'));
-
-
-        // TODO $this->container->has($channelAlias)
+        $connection = $input->getArgument('connection');
+        $channelAlias = sprintf('old_sound_rabbit_mq.channel.%s', $connection);
+        if(!$this->container->has($channelAlias)) {
+            throw new InvalidOptionException('Connection is not exist');
+        };
 
         $channel = $this->container->get($channelAlias);
 

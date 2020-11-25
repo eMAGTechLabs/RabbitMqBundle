@@ -30,10 +30,6 @@
         
         <service id="old_sound_rabbit_mq.parts_holder" class="%old_sound_rabbit_mq.parts_holder.class%" public="true" />
 
-        <service id="old_sound_rabbit_mq.batch_consumer_command" class="OldSound\RabbitMqBundle\Command\BatchConsumerCommand">
-            <tag name="console.command" command="rabbitmq:batch:consumer" />
-        </service>
-
         <service id="old_sound_rabbit_mq.consumer_command" class="OldSound\RabbitMqBundle\Command\ConsumerCommand">
             <argument type="tagged_iterator" tag="old_sound_rabbit_mq.consumer"></argument>
             <argument type="service" id="old_sound_rabbit_mq.declaration_registry"></argument>
@@ -52,9 +48,12 @@
             <tag name="console.command" command="rabbitmq:rpc-server" />
         </service>
 
-        <service id="old_sound_rabbit_mq.command.setup_fabric_command" class="OldSound\RabbitMqBundle\Command\DeclareCommand">
+        <service id="old_sound_rabbit_mq.command.declare_command" class="OldSound\RabbitMqBundle\Command\DeclareCommand">
             <argument type="service" id="old_sound_rabbit_mq.declaration_registry"></argument>
-            <tag name="console.command" command="rabbitmq:setup-fabric" />
+            <call method="setContainer" >
+                <argument tag="service" id="service_container"></argument>
+            </call>
+            <tag name="console.command" command="rabbitmq:declare" />
         </service>
 
         <service id="old_sound_rabbit_mq.command.std_in_producer_command" class="OldSound\RabbitMqBundle\Command\StdInProducerCommand">
