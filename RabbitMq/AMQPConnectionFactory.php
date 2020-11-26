@@ -12,7 +12,7 @@ class AMQPConnectionFactory
     private $class;
 
     /** @var array */
-    private $parameters = array(
+    private $parameters = [
         'url'                => '',
         'host'               => 'localhost',
         'port'               => 5672,
@@ -24,7 +24,7 @@ class AMQPConnectionFactory
         'ssl_context'        => null,
         'keepalive'          => false,
         'heartbeat'          => 0,
-    );
+    ];
 
     /**
      * Constructor

@@ -237,7 +237,7 @@ class OldSoundRabbitMqExtension extends Extension
                 $definition->addArgument($producer['exchange']);
                 //$this->injectConnection($definition, $producer['connection']);
                 //if ($this->collectorEnabled) {
-                //    $this->injectLoggedChannel($definition, $key, $producer['connection']);
+                //    $this->injectTraceableChannel($definition, $key, $producer['connection']);
                 //}
 
                 //if (!$producer['auto_setup_fabric']) {
@@ -336,7 +336,7 @@ class OldSoundRabbitMqExtension extends Extension
 
             $this->injectConnection($definition, $consumer['connection']);
             if ($this->collectorEnabled) {
-                $this->injectLoggedChannel($definition, $key, $consumer['connection']);
+                $this->injectTraceableChannel($definition, $key, $consumer['connection']);
             }
 
             if ($consumer['enable_logger']) {
@@ -412,7 +412,7 @@ class OldSoundRabbitMqExtension extends Extension
                 ->addMethodCall('initClient', array($client['expect_serialized_response']));
             $this->injectConnection($definition, $client['connection']);
             if ($this->collectorEnabled) {
-                $this->injectLoggedChannel($definition, $key, $client['connection']);
+                $this->injectTraceableChannel($definition, $key, $client['connection']);
             }
             if (array_key_exists('unserializer', $client)) {
                 $definition->addMethodCall('setUnserializer', array($client['unserializer']));
@@ -438,7 +438,7 @@ class OldSoundRabbitMqExtension extends Extension
                 ->addMethodCall('setCallback', array(array(new Reference($server['callback']), 'execute')));
             $this->injectConnection($definition, $server['connection']);
             if ($this->collectorEnabled) {
-                $this->injectLoggedChannel($definition, $key, $server['connection']);
+                $this->injectTraceableChannel($definition, $key, $server['connection']);
             }
             if (array_key_exists('qos_options', $server)) {
                 $definition->addMethodCall('setQosOptions', array(
@@ -460,16 +460,16 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    protected function injectLoggedChannel(Definition $definition, $name, $connectionName)
+    protected function injectTraceableChannel(Definition $definition, $name, $connectionName)
     {
         $id = sprintf('old_sound_rabbit_mq.channel.%s', $name);
-        $channel = new Definition('%old_sound_rabbit_mq.logged.channel.class%');
-        $channel
+        $traceableChannel = new Definition('%old_sound_rabbit_mq.traceable.channel.class%');
+        $traceableChannel
             ->setPublic(false)
-            ->addTag('old_sound_rabbit_mq.logged_channel');
-        $this->injectConnection($channel, $connectionName);
+            ->addTag('old_sound_rabbit_mq.traceable_channel');
+        $this->injectConnection($traceableChannel, $connectionName);
 
-        $this->container->setDefinition($id, $channel);
+        $this->container->setDefinition($id, $traceableChannel);
 
         $this->channelIds[] = $id;
         $definition->addArgument(new Reference($id));

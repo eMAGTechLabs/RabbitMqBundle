@@ -339,6 +339,9 @@ class Consumer
                     $channel->basic_reject($deliveryTag, false); // Reject and drop
                 } else if ($processFlag !== ConsumerInterface::MSG_ACK_SENT) {
                     $channel->basic_ack($deliveryTag); // Remove message from queue only if callback return not false
+
+                    $message = $messages[$deliveryTag];
+                    $this->onAsk($message, $processFlag);
                 }
 
                 $this->consumed++;
@@ -350,10 +353,18 @@ class Consumer
         }
     }
 
-    private function handleProcessFlag(AMQPChannel $channel, $deliveryTag, $processFlag)
+    protected function onAsk(AMQPMessage $message, $result)
     {
-
-
+        $replayTo = $message->get('reply_to');
+        $correlationId = $message->get('correlation_id');
+        if (isset($replayTo) && isset($correlationId)) {
+            $message->getChannel()->basic_publish(
+                new AMQPMessage($result, [
+                    'content_type' => 'text/plain',
+                    'correlation_id' => $correlationId
+                ], '', $replayTo)
+            );
+        }
     }
 
     protected function maybeStopConsumer()

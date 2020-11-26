@@ -14,7 +14,7 @@
         <parameter key="old_sound_rabbit_mq.batch_consumer.class">OldSound\RabbitMqBundle\RabbitMq\BatchConsumer</parameter>
         <parameter key="old_sound_rabbit_mq.rpc_client.class">OldSound\RabbitMqBundle\RabbitMq\RpcClient</parameter>
         <parameter key="old_sound_rabbit_mq.rpc_server.class">OldSound\RabbitMqBundle\RabbitMq\RpcServer</parameter>
-        <parameter key="old_sound_rabbit_mq.logged.channel.class">OldSound\RabbitMqBundle\RabbitMq\AMQPLoggedChannel</parameter>
+        <parameter key="old_sound_rabbit_mq.traceable.channel.class">OldSound\RabbitMqBundle\RabbitMq\TraceableAMQPChannel</parameter>
         <parameter key="old_sound_rabbit_mq.data_collector.class">OldSound\RabbitMqBundle\DataCollector\MessageDataCollector</parameter>
         <parameter key="old_sound_rabbit_mq.parts_holder.class">OldSound\RabbitMqBundle\RabbitMq\AmqpPartsHolder</parameter>
         <parameter key="old_sound_rabbit_mq.fallback.class">OldSound\RabbitMqBundle\RabbitMq\Fallback</parameter>

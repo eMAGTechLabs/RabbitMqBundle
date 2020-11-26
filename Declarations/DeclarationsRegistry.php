@@ -2,10 +2,6 @@
 
 namespace OldSound\RabbitMqBundle\Declarations;
 
-use OldSound\RabbitMqBundle\RabbitMq\BindingDeclaration;
-use OldSound\RabbitMqBundle\RabbitMq\ExchangeDeclaration;
-use OldSound\RabbitMqBundle\RabbitMq\QueueDeclaration;
-
 class DeclarationsRegistry
 {
     /** @var ExchangeDeclaration[] */
