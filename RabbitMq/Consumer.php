@@ -19,6 +19,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\ExecuteCallbackStrategyInterface;
+use Symfony\Component\Serializer\SerializerInterface;
 
 class Consumer
 {
@@ -33,6 +34,9 @@ class Consumer
     protected $queueConsumings = [];
     /** @var ExecuteCallbackStrategyInterface[] */
     protected $executeCallbackStrategies = [];
+    /** @var SerializerInterface|null */
+    protected $serializer;
+
     /** @var string[] */
     protected $consumerTags = [];
     /** @var array */
@@ -86,12 +90,17 @@ class Consumer
         return $this->channel;
     }
 
-    protected function setup()
+    public function setSerializer(SerializerInterface $serializer)
+    {
+        $this->serializer = $serializer;
+    }
+
+    protected function setup(): Consumer
     {
         foreach($this->queueConsumings as $index => $queueConsuming) {
             $this->channel->basic_qos($queueConsuming->qosPrefetchSize, $queueConsuming->qosPrefetchCount, false);
 
-            $this->consumerTags[] = $this->channel->basic_consume(
+            $consumerTag = $this->channel->basic_consume(
                 $queueConsuming->queueName,
                 $queueConsuming->consumerTag ?
                     $queueConsuming->consumerTag :
@@ -103,10 +112,15 @@ class Consumer
                 function (AMQPMessage $message) use ($queueConsuming) {
                     $this->getExecuteCallbackStrategy($queueConsuming)->consumeCallback($message);
                 });
+
+            //$queueConsuming->consumerTag = $consumerTag;
+            $this->consumerTags[] = $consumerTag;
         }
+
+        return $this;
     }
 
-    public function consumeQueue(QueueConsuming $queueConsuming, ExecuteCallbackStrategyInterface $executeCallbackStrategy)
+    public function consumeQueue(QueueConsuming $queueConsuming, ExecuteCallbackStrategyInterface $executeCallbackStrategy): Consumer
     {
         $this->queueConsumings[] = $queueConsuming;
         $executeCallbackStrategy->setProccessMessagesFn(function (array $messages) use ($queueConsuming) {
@@ -125,6 +139,8 @@ class Consumer
         }
 
         $this->executeCallbackStrategies[] = $executeCallbackStrategy;
+
+        return $this;
     }
 
     private function getExecuteCallbackStrategy(QueueConsuming $queueConsuming): ExecuteCallbackStrategyInterface
@@ -355,15 +371,20 @@ class Consumer
 
     protected function onAsk(AMQPMessage $message, $result)
     {
-        $replayTo = $message->get('reply_to');
-        $correlationId = $message->get('correlation_id');
-        if (isset($replayTo) && isset($correlationId)) {
-            $message->getChannel()->basic_publish(
-                new AMQPMessage($result, [
+        $isRpcCall = $message->has('reply_to') && $message->has('correlation_id');
+        if ($isRpcCall) {
+            if ($result instanceof RpcResponseInterface) {
+                $body = $this->serializer->serialize($result, 'json');
+                $replayMessage = new AMQPMessage($body, [
                     'content_type' => 'text/plain',
-                    'correlation_id' => $correlationId
-                ], '', $replayTo)
-            );
+                    'correlation_id' => $message->get('correlation_id')
+                ]);
+                $message->getChannel()->basic_publish($replayMessage , '', $message->get('reply_to'));
+            } else {
+                $this->logger->error('Rpc call send msg to queue which have not rpc reponse', [
+                    'amqp' => ['message' => $message]
+                ]);
+            }
         }
     }
 

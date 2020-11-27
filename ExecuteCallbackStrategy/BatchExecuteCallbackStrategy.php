@@ -46,7 +46,7 @@ class BatchExecuteCallbackStrategy extends AbstractExecuteCallbackStrategy
 
     public function onStopConsuming()
     {
-        if (!$this->isEmptyBatch()) {
+        if (!$this->isBatchEmpty()) {
             $this->proccessMessages($this->messagesBatch);
         }
     }

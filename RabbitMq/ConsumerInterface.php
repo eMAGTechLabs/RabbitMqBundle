@@ -32,8 +32,8 @@ interface ConsumerInterface
     const MSG_ACK_SENT = -2;
 
     /**
-     * @param AMQPMessage $msg The message
+     * @param AMQPMessage $message
      * @return mixed false to reject and requeue, any other value to acknowledge
      */
-    public function execute(AMQPMessage $msg);
+    public function execute(AMQPMessage $message);
 }

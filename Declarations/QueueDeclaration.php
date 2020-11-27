@@ -1,7 +1,7 @@
 <?php
 
 
-namespace OldSound\RabbitMqBundle\RabbitMq;
+namespace OldSound\RabbitMqBundle\Declarations;
 
 /**
  * @TODO move

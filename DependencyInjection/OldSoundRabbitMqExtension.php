@@ -5,11 +5,11 @@ namespace OldSound\RabbitMqBundle\DependencyInjection;
 use OldSound\RabbitMqBundle\Consumer\ConsumersRegistry;
 use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
 use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
+use OldSound\RabbitMqBundle\Declarations\BindingDeclaration;
+use OldSound\RabbitMqBundle\Declarations\ExchangeDeclaration;
+use OldSound\RabbitMqBundle\Declarations\QueueDeclaration;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\SimpleExecuteCallbackStrategy;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy;
-use OldSound\RabbitMqBundle\RabbitMq\BindingDeclaration;
-use OldSound\RabbitMqBundle\RabbitMq\ExchangeDeclaration;
-use OldSound\RabbitMqBundle\RabbitMq\QueueDeclaration;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AbstractConnection;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -21,6 +21,7 @@ use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\Serializer\SerializerInterface;
 
 /**+
  * OldSoundRabbitMqExtension.
@@ -273,7 +274,12 @@ class OldSoundRabbitMqExtension extends Extension
         $simpleExecuteCallbackStrategyAlias = 'old_sound_rabbit_mq.execute_callback_strategy.simple';
         $this->container->setDefinition($simpleExecuteCallbackStrategyAlias, new Definition(SimpleExecuteCallbackStrategy::class));
 
+        $hasSerializer = true;//$this->container->has('serializer');
+
         foreach ($this->config['consumers'] as $key => $consumer) {
+            $alias = sprintf('old_sound_rabbit_mq.%s_consumer', $key);
+            $serializerAlias = sprintf('old_sound_rabbit_mq.%s_consumer.serializer', $key);// TODO
+
             $connectionName = isset($consumer['connection']) ? $consumer['connection'] : 'default';
 
             $definition = new Definition('%old_sound_rabbit_mq.consumer.class%', [
@@ -281,6 +287,11 @@ class OldSoundRabbitMqExtension extends Extension
                 $this->createChannelReference($connectionName)
             ]);
             $definition->setPublic(true);
+            //dump($hasSerializer);
+            if ($hasSerializer) {
+                $this->container->setAlias($serializerAlias, SerializerInterface::class);
+                $definition->addMethodCall('setSerializer', [new Reference($serializerAlias)]);
+            }
             $definition->addTag('old_sound_rabbit_mq.consumer');
             foreach($consumer['consumeQueues'] as $index => $consumeQueue) {
                 $queueConsumingDef = new Definition(QueueConsuming::class);
@@ -293,7 +304,7 @@ class OldSoundRabbitMqExtension extends Extension
                     //'noLocal' => $consumeQueue['no_local'],
                 ]);
 
-                $executeCallbackStrategyRef = isset($consumeQueue['batch_count']) && $consumeQueue['batch_count'] > 2 ?
+                $executeCallbackStrategyRef = isset($consumeQueue['batch_count']) ?
                     new Definition(BatchExecuteCallbackStrategy::class, [$consumeQueue['batch_count']]) :
                     new Reference($simpleExecuteCallbackStrategyAlias);
 
@@ -343,8 +354,7 @@ class OldSoundRabbitMqExtension extends Extension
                 $this->injectLogger($definition);
             }
 
-            $name = sprintf('old_sound_rabbit_mq.%s_consumer', $key);
-            $this->container->setDefinition($name, $definition);
+            $this->container->setDefinition($alias, $definition);
             //TODO $this->addDequeuerAwareCall($consumer['callback'], $name);
         }
     }

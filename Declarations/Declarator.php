@@ -5,7 +5,7 @@ namespace OldSound\RabbitMqBundle\Declarations;
 use OldSound\RabbitMqBundle\RabbitMq\BindingDeclaration;
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use OldSound\RabbitMqBundle\RabbitMq\ExchangeDeclaration;
-use OldSound\RabbitMqBundle\RabbitMq\QueueDeclaration;
+use OldSound\RabbitMqBundle\Declarations\QueueDeclaration;
 use PhpAmqpLib\Channel\AMQPChannel;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
@@ -47,11 +47,13 @@ class Declarator
 
     /**
      * @param QueueDeclaration[] $queues
+     * @return string[]
      */
-    public function declareQueues(array $queues) 
+    public function declareQueues(array $queues): array
     {
+        $results = [];
         foreach ($queues as $queue) {
-            $this->channel->queue_declare(
+            $result = $this->channel->queue_declare(
                 $queue->name,
                 $queue->passive,
                 $queue->durable,
@@ -62,8 +64,14 @@ class Declarator
                 $queue->ticket,
             );
 
-            $this->logger->info(sprintf('Queue is declared successfully', ['queue' => $queue]));
+            if ($result === null) {
+                // TODO
+            } else {
+                $results[] = $result[0];
+                $this->logger->info(sprintf('Queue is declared successfully', ['queue' => $queue]));
+            }
         }
+        return $results;
     }
 
     /**
@@ -114,6 +122,7 @@ class Declarator
     {
         $consumerQueues = array_filter($declarationsRegistry->queues, function ($queue) use ($queueName) {
             return $queue->name === $queueName;
+            // TODO not found! exception?
         });
 
         /** @var BindingDeclaration[] $bindings */

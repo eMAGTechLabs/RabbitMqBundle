@@ -2,126 +2,130 @@
 
 namespace OldSound\RabbitMqBundle\RabbitMq;
 
+use OldSound\RabbitMqBundle\Declarations\BindingDeclaration;
+use OldSound\RabbitMqBundle\Declarations\Declarator;
+use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
+use OldSound\RabbitMqBundle\Declarations\QueueDeclaration;
+use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy;
+use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
+use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Symfony\Component\Serializer\Serializer;
 
-class RpcClient extends BaseAmqp
+class RpcClient
 {
-    protected $requests = 0;
-    protected $replies = array();
-    protected $expectSerializedResponse;
-    protected $timeout = 0;
-    protected $notifyCallback;
+    /** @var QueueDeclaration */
+    private $anonRepliesQueue;
+    /** @var string */
+    private $name;
+    /** @var AMQPChannel */
+    private $channel;
+    /** @var Serializer */
+    private $serializer;
+    /** @var string|null */
+    private $repliesQueueName;
+    /** @var int */
+    private $expiration;
 
-    private $queueName;
-    private $unserializer = 'unserialize';
-    private $directReplyTo;
-    private $directConsumerTag;
+    private $requests = 0;
+    private $replies = [];
 
-    public function initClient($expectSerializedResponse = true)
-    {
-        $this->expectSerializedResponse = $expectSerializedResponse;
+    public function __construct(
+        string $name,
+        AMQPChannel $channel,
+        Serializer $serializer,
+        string $repliesQueueName = null,
+        int $expiration = 10000
+    ) {
+        $this->name = $name;
+        $this->channel = $channel;
+        $this->serializer = $serializer;
+        $this->repliesQueueName = $repliesQueueName;
+        $this->expiration = $expiration;
     }
 
-    public function addRequest($msgBody, $server, $requestId = null, $routingKey = '', $expiration = 0)
+    public function setup(): RpcClient
     {
-        if (empty($requestId)) {
-            throw new \InvalidArgumentException('You must provide a $requestId');
+        $this->anonRepliesQueue = $this->createAnonQueueDeclaration();
+        $this->anonRepliesQueue->name = $this->repliesQueueName;
+        $declarator = new Declarator($this->channel);
+        [$queueName] = $declarator->declareQueues([$this->anonRepliesQueue]);
+        $this->anonRepliesQueue->name = $queueName;
+
+        return $this;
+    }
+
+    public function addRequest($msgBody, $rpcQueue)
+    {
+        if (!$this->anonRepliesQueue) {
+            throw new \LogicException('no init anonRepliesQueue');
         }
 
-        if (0 == $this->requests) {
-            // On first addRequest() call, clear all replies
-            $this->replies = array();
+        $replyToQueue = $this->anonRepliesQueue->name; // 'amq.rabbitmq.reply-to';
+        $msg = new AMQPMessage($this->serializer->serialize($msgBody, 'json'), [
+            'content_type' => 'text/plain',
+            'reply_to' => $replyToQueue,
+            'delivery_mode' => 1, // non durable
+            'expiration' => $this->expiration,
+            'correlation_id' => $this->requests
+        ]);
 
-            if ($this->directReplyTo) {
-                // On direct reply-to mode, make initial consume call
-                $this->directConsumerTag = $this->getChannel()->basic_consume('amq.rabbitmq.reply-to', '', false, true, false, false, array($this, 'processMessage'));
-            }
-        }
-
-        $msg = new AMQPMessage($msgBody, array('content_type' => 'text/plain',
-                                               'reply_to' => $this->directReplyTo
-                                                   ? 'amq.rabbitmq.reply-to' // On direct reply-to mode, use predefined queue name
-                                                   : $this->getQueueName(),
-                                               'delivery_mode' => 1, // non durable
-                                               'expiration' => $expiration*1000,
-                                               'correlation_id' => $requestId));
-
-        $this->getChannel()->basic_publish($msg, $server, $routingKey);
-
+        $this->channel->basic_publish($msg, '', $rpcQueue);
         $this->requests++;
-
-        if ($expiration > $this->timeout) {
-            $this->timeout = $expiration;
-        }
     }
 
-    public function getReplies()
+    // TODO public move
+    private function createAnonQueueDeclaration(): QueueDeclaration
     {
-        if ($this->directReplyTo) {
-            $consumer_tag = $this->directConsumerTag;
-        } else {
-            $consumer_tag = $this->getChannel()->basic_consume($this->getQueueName(), '', false, true, false, false, array($this, 'processMessage'));
+        $anonQueueDeclaration = new QueueDeclaration();
+        $anonQueueDeclaration->passive = false;
+        $anonQueueDeclaration->durable = false;
+        $anonQueueDeclaration->exclusive = true;
+        $anonQueueDeclaration->autoDelete = true;
+        $anonQueueDeclaration->nowait = false;
+
+        return $anonQueueDeclaration;
+    }
+
+    public function getReplies($name, $type): array
+    {
+        if (0 === $this->requests) {
+            throw new \LogicException('request empty');
         }
+
+        $consumer = new Consumer('rpc_replies_' . $this->name, $this->channel);
+        $consuming = new QueueConsuming();
+        $consuming->exclusive = true;
+        $consuming->qosPrefetchCount = $this->requests;
+        $consuming->queueName = $this->anonRepliesQueue->name;
+        $consuming->callback = new class() implements BatchConsumerInterface {
+            /** @var AMQPMessage[] */
+            public $messages;
+            public function batchExecute(array $messages)
+            {
+                if ($this->messages !== null) {
+                    throw new \LogicException('Rpc client consming should be called once by batch count limit');
+                }
+                $this->messages = $messages;
+            }
+        };
+        $consumer->consumeQueue($consuming, new BatchExecuteCallbackStrategy($this->requests));
 
         try {
-            while (count($this->replies) < $this->requests) {
-                $this->getChannel()->wait(null, false, $this->timeout);
-            }
+            $consumer->consume($this->requests);
         } finally {
-            $this->getChannel()->basic_cancel($consumer_tag);
+            // TODO $this->getChannel()->basic_cancel($consumer_tag);
         }
 
-        $this->directConsumerTag = null;
-        $this->requests = 0;
-        $this->timeout = 0;
-
-        return $this->replies;
-    }
-
-    public function processMessage(AMQPMessage $msg)
-    {
-        $messageBody = $msg->body;
-        if ($this->expectSerializedResponse) {
-            $messageBody = call_user_func($this->unserializer, $messageBody);
+        $replices = [];
+        foreach($consuming->callback->messages as $message) {
+            if (null === $message->get('correlation_id')) {
+                $this->logger->error('unexpected message. rpc replies have no correlation_id ');
+                continue;
+            }
+            $replices[$message->get('correlation_id')] = $this->serializer->deserialize($message->body, $type, 'json');
         }
-        if ($this->notifyCallback !== null) {
-            call_user_func($this->notifyCallback, $messageBody);
-        }
-
-        $this->replies[$msg->get('correlation_id')] = $messageBody;
-    }
-
-    protected function getQueueName()
-    {
-        if (null === $this->queueName) {
-            list($this->queueName, ,) = $this->getChannel()->queue_declare("", false, false, true, false);
-        }
-
-        return $this->queueName;
-    }
-
-    public function setUnserializer($unserializer)
-    {
-        $this->unserializer = $unserializer;
-    }
-
-    public function notify($callback)
-    {
-        if (is_callable($callback)) {
-            $this->notifyCallback = $callback;
-        } else {
-            throw new \InvalidArgumentException('First parameter expects to be callable');
-        }
-    }
-
-    public function setDirectReplyTo($directReplyTo)
-    {
-        $this->directReplyTo = $directReplyTo;
-    }
-
-    public function reset()
-    {
-        $this->replies = array();
-        $this->requests = 0;
+        ksort($replices);
+        return $replices;
     }
 }
