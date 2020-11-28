@@ -2,6 +2,7 @@
 
 namespace OldSound\RabbitMqBundle;
 
+use OldSound\RabbitMqBundle\Event\AbstractAMQPEvent;
 use OldSound\RabbitMqBundle\Event\AMQPEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface as ContractsEventDispatcherInterface;
@@ -11,36 +12,19 @@ trait EventDispatcherAwareTrait
     /** @var EventDispatcherInterface|null */
     protected $eventDispatcher = null;
 
-    /**
-     * @param EventDispatcherInterface $eventDispatcher
-     *
-     * @return BaseAmqp
-     */
     public function setEventDispatcher(EventDispatcherInterface $eventDispatcher)
     {
         $this->eventDispatcher = $eventDispatcher;
-
-        return $this;
     }
 
-    /**
-     * @param string $eventName
-     * @param AMQPEvent  $event
-     */
-    protected function dispatchEvent($eventName, AMQPEvent $event)
+    protected function dispatchEvent(string $eventName, AbstractAMQPEvent $event)
     {
-        if ($this->getEventDispatcher() instanceof ContractsEventDispatcherInterface) {
-            $this->getEventDispatcher()->dispatch(
-                $event,
-                $eventName
-            );
+        if (null !== $this->eventDispatcher) {
+            $this->eventDispatcher->dispatch($event, $eventName);
         }
     }
 
-    /**
-     * @return EventDispatcherInterface|null
-     */
-    public function getEventDispatcher()
+    public function getEventDispatcher(): ?EventDispatcherInterface
     {
         return $this->eventDispatcher;
     }

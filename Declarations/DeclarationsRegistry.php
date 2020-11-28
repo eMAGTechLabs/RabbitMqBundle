@@ -13,7 +13,10 @@ class DeclarationsRegistry
     
     public function addExchange(ExchangeDeclaration $exchangeDeclaration)
     {
-        $this->exchanges[] = $exchangeDeclaration;
+        if (isset($this->exchanges[$exchangeDeclaration->name])) {
+            throw new \InvalidArgumentException(sprintf('Exchange declartion with %s name already registerd', $exchangeDeclaration->name));
+        }
+        $this->exchanges[$exchangeDeclaration->name] = $exchangeDeclaration;
     }
     
     public function addQueue(QueueDeclaration $queueDeclaration)
@@ -35,20 +38,5 @@ class DeclarationsRegistry
         return array_filter($this->bindings, function ($binding) use ($exchange) {
             return $binding->exchange === $exchange->name || ($binding->destinationIsExchange && $binding->destination === $exchange->name);
         });
-    }
-
-    public function initDeclarationsRefs()
-    {
-        foreach ($this->queues as $queue) {
-            $bindings = array_filter($this->bindings, function ($binding) use ($queue) {
-                return !$binding->destinationIsExchange && $binding->destination === $queue->name;
-            });
-            $queue->bindings += $bindings;
-        }
-
-        foreach ($this->exchanges as $exchange) {
-
-            $exchange->bindings += $bindings;
-        }
     }
 }

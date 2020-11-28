@@ -11,13 +11,13 @@ use PhpAmqpLib\Message\AMQPMessage;
  *
  * @package OldSound\RabbitMqBundle\Command
  */
-class BeforeProcessingMessageEvent extends AMQPEvent
+class BeforeProcessingMessagesEvent extends AbstractAMQPEvent
 {
-    const NAME = AMQPEvent::BEFORE_PROCESSING_MESSAGE;
+    const NAME = 'before_processing';
 
     /** @var QueueConsuming */
     public $queueConsuming;
-    
+
     /**
      * BeforeProcessingMessageEvent constructor.
      *
@@ -25,12 +25,12 @@ class BeforeProcessingMessageEvent extends AMQPEvent
      */
     public function __construct(
         Consumer $consumer, 
-        AMQPMessage $AMQPMessage,
+        array $messages,
         QueueConsuming $queueConsuming
     )
     {
-        $this->setConsumer($consumer);
-        $this->setAMQPMessage($AMQPMessage);
+        $this->consumer = $consumer;
+        $this->messages = $messages;
         $this->queueConsuming = $queueConsuming;
     }
 }

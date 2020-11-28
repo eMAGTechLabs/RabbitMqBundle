@@ -8,6 +8,7 @@ use OldSound\RabbitMqBundle\Event\AfterProcessingMessageEvent;
 use OldSound\RabbitMqBundle\Event\AfterProcessingMessagesEvent;
 use OldSound\RabbitMqBundle\Event\AMQPEvent;
 use OldSound\RabbitMqBundle\Event\BeforeProcessingMessageEvent;
+use OldSound\RabbitMqBundle\Event\BeforeProcessingMessagesEvent;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\Event\OnIdleEvent;
 use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
@@ -117,8 +118,6 @@ class Consumer
         return $this;
     }
 
-
-
     public function consumeQueue(QueueConsuming $queueConsuming, ExecuteCallbackStrategyInterface $executeCallbackStrategy): Consumer
     {
         $this->queueConsumings[] = $queueConsuming;
@@ -131,21 +130,12 @@ class Consumer
                     $logAmqpContext['message'] = $messages[0];
                 }
 
+                $this->dispatchEvent(BeforeProcessingMessagesEvent::NAME,
+                    new BeforeProcessingMessagesEvent($this, $messages, $queueConsuming)
+                );
+
                 try {
                     $replies = $this->processMessages($messages, $queueConsuming);
-
-                    foreach ($messages as $message) {
-                        $logContent = $logAmqpContext;
-                        $replay = $replies[$message->getDeliveryTag()];
-                        if (!$queueConsuming->noAck && is_int($replay)) {
-                            $logContent['return_code'] = $replay;
-                        }
-                        $this->logger->info('Queue message processed', ['amqp' => $logContent]);
-                    }
-                    $this->dispatchEvent(
-                        AfterProcessingMessagesEvent::NAME,
-                        new AfterProcessingMessagesEvent($this, $messages)
-                    );
                 } catch (Exception\StopConsumerException $e) {
                     $this->logger->info('Consumer requested stop', [
                         'amqp' => $logAmqpContext,
@@ -161,6 +151,13 @@ class Consumer
                     ]);
                     throw $e;
                 }
+
+                $this->logger->info('Queue messages processed', ['amqp' => $logAmqpContext]); // TODO add flag code
+                $this->dispatchEvent(
+                    AfterProcessingMessagesEvent::NAME,
+                    new AfterProcessingMessagesEvent($this, $messages) // TODO add flag code
+                );
+
                 $this->maybeStopConsumer();
             })->bindTo($this)
         ));
@@ -273,12 +270,6 @@ class Consumer
             throw new \InvalidArgumentException('Strategy is not supported process of multi messages');
         }
 
-        foreach ($messages as $message) {
-            $this->dispatchEvent(BeforeProcessingMessageEvent::NAME,
-                new BeforeProcessingMessageEvent($this, $message, $queueConsuming)
-            );
-        }
-
         /** @var int[]|RpcReponse[]|RpcResponseException[]|bool[] $replies */
         $replies = [];
         if ($queueConsuming->callback instanceof BatchConsumerInterface) {
@@ -296,9 +287,9 @@ class Consumer
             }
         } else {
             try {
-                $replies = [$message->getDeliveryTag() => $queueConsuming->callback->execute($messages[0])];
+                $replies = [$messages[0]->getDeliveryTag() => $queueConsuming->callback->execute($messages[0])];
             } catch (Exception\RpcResponseException $e) {
-                $replies = [$message->getDeliveryTag() => $e];
+                $replies = [$messages[0]->getDeliveryTag() => $e];
             }
         }
 

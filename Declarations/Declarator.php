@@ -2,10 +2,7 @@
 
 namespace OldSound\RabbitMqBundle\Declarations;
 
-use OldSound\RabbitMqBundle\RabbitMq\BindingDeclaration;
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
-use OldSound\RabbitMqBundle\RabbitMq\ExchangeDeclaration;
-use OldSound\RabbitMqBundle\Declarations\QueueDeclaration;
 use PhpAmqpLib\Channel\AMQPChannel;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
@@ -132,7 +129,7 @@ class Declarator
             $b = array_filter($declarationsRegistry->bindings, function ($binding) use ($queue) {
                 return !$binding->destinationIsExchange && $binding->destination === $queue->name;
             });
-            $bindings += $b;
+            $bindings = array_merge($bindings, $b);
             foreach ($b as $binding) {
                 $exchanges[] = $binding->exchange;
                 if ($binding->destinationIsExchange) {
@@ -141,6 +138,7 @@ class Declarator
             }
         }
 
+        $exchanges = array_map(fn ($exchange) => $declarationsRegistry->exchanges[$exchange], array_unique($exchanges));
         $this->declareExchanges($exchanges);
         $this->declareQueues($consumerQueues);
         $this->declareBindings($bindings);

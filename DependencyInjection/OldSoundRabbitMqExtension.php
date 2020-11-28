@@ -74,7 +74,7 @@ class OldSoundRabbitMqExtension extends Extension
             $declarationRegistryDef->addMethodCall('addQueue', [$queue]);
         };
         foreach ($this->loadBindings($this->config['declarations']['bindings']) as $binding) {
-            $declarationRegistryDef->addMethodCall('addBinding', [$binding]);
+            $this->container->getDefinition('old_sound_rabbit_mq.declaration_registry')->addMethodCall('addBinding', [$binding]);
         };
 
         $this->loadProducers();
@@ -107,9 +107,8 @@ class OldSoundRabbitMqExtension extends Extension
             $exchangeDeclaration = new Definition(ExchangeDeclaration::class);
             $exchangeDeclaration->setProperties($exchange);
 
-            $this->loadBindings($exchange['bindings'], $exchange['name'], null);
-            foreach($exchange['bindings'] as $binding) {
-                //$this->loadBinding($binding, $exchange['name'], $binding['destination'], !!$binding['destination_is_exchange']);
+            foreach($this->loadBindings($exchange['bindings'], $exchange['name'], null) as $binding) {
+                $this->container->getDefinition('old_sound_rabbit_mq.declaration_registry')->addMethodCall('addBinding', [$binding]);
             }
 
             $this->container->setDefinition('old_sound_rabbit_mq.exchange.'.$exchange['name'], $exchangeDeclaration);
@@ -122,44 +121,41 @@ class OldSoundRabbitMqExtension extends Extension
      */
     protected function loadQueues($queues): array
     {
-        return array_map(function ($queue) use ($queues) {
-            $queue['name'] = array_search($queue, $queues, true);
+        return array_map(function ($queue, $key) use ($queues) {
+            $queue['name'] = $queue['name'] ?? $key;
             $queueDeclaration = new Definition(QueueDeclaration::class);
             $queueDeclaration->setProperties($queue);
 
-            $this->loadBindings($queue['bindings'], null, $queue['name'], false);
+            foreach ($this->loadBindings($queue['bindings'], null, $queue['name'], false) as $binding) {
+                $this->container->getDefinition('old_sound_rabbit_mq.declaration_registry')->addMethodCall('addBinding', [$binding]);
+            }
 
             return $queueDeclaration;
-        }, $queues);
+        }, $queues, array_keys($queues));
     }
 
-    protected function loadBinding($binding, string $exchange = null, string $destination = null, bool $destinationIsExchange = null): array
+    protected function createBindingDef($binding, string $exchange = null, string $destination = null, bool $destinationIsExchange = null): Definition
     {
-        $routingKeys = $binding['routing_keys'] ? $binding['routing_keys'] : [$binding['routing_key']];
+        $routingKeys = $binding['routing_keys'] ?? [$binding['routing_key']];
 
-        $definitions = [];
-        foreach ($routingKeys as $routingKey)
-        {
-            $definition = new Definition(BindingDeclaration::class);
-            $definition->setProperties([
-                'exchange' => $exchange ? $exchange : $binding['exchange'],
-                'destinationIsExchange' => isset($destinationIsExchange) ? $destinationIsExchange : $binding['destination_is_exchange'],
-                'destination' => $destination ? $destination : $binding['destination'],
-                'routingKey' => $routingKey,
-                // TODO 'arguments' => $binding['arguments'],
-                //'nowait' => $binding['nowait'],
-            ]);
-            $definitions[] = $definition;
-        }
+        $definition = new Definition(BindingDeclaration::class);
+        $definition->setProperties([
+            'exchange' => $exchange ? $exchange : $binding['exchange'],
+            'destinationIsExchange' => isset($destinationIsExchange) ? $destinationIsExchange : $binding['destination_is_exchange'],
+            'destination' => $destination ? $destination : $binding['destination'],
+            'routingKeys' => $routingKeys,
+            // TODO 'arguments' => $binding['arguments'],
+            //'nowait' => $binding['nowait'],
+        ]);
 
-        return $definitions;
+        return $definition;
     }
 
     protected function loadBindings($bindings, string $exchange = null, string $destination = null, bool $destinationIsExchange = null): array
     {
         $definitions = [];
         foreach ($bindings as $binding) {
-            $this->loadBinding($binding, $exchange, $destination, $destinationIsExchange);
+            $definitions[] = $this->createBindingDef($binding, $exchange, $destination, $destinationIsExchange);
         }
 
         return $definitions;
@@ -226,7 +222,7 @@ class OldSoundRabbitMqExtension extends Extension
 
         $defaultAutoDeclare = $this->container->getParameter('kernel.environment') !== 'prod';
         foreach ($this->config['producers'] as $producerName => $producer) {
-            $alias = sprintf('old_sound_rabbit_mq.producer.&s', $producerName);
+            $alias = sprintf('old_sound_rabbit_mq.producer.%s', $producerName);
 
             $definition = new Definition($producer['class']);
             $definition->setPublic(true);

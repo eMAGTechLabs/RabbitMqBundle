@@ -9,10 +9,9 @@ use OldSound\RabbitMqBundle\RabbitMq\Consumer;
  *
  * @package OldSound\RabbitMqBundle\Command
  */
-class OnIdleEvent extends AMQPEvent
+class OnIdleEvent extends AbstractAMQPEvent
 {
-    const NAME = AMQPEvent::ON_IDLE;
-
+    const NAME = 'on_idle';
     /**
      * @var bool
      */
@@ -25,8 +24,7 @@ class OnIdleEvent extends AMQPEvent
      */
     public function __construct(Consumer $consumer)
     {
-        $this->setConsumer($consumer);
-
+        $this->consumer = $consumer;
         $this->forceStop = true;
     }
 

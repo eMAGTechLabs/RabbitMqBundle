@@ -10,9 +10,9 @@ use PhpAmqpLib\Message\AMQPMessage;
  *
  * @package OldSound\RabbitMqBundle\Event
  */
-class AfterProcessingMessagesEvent extends AMQPEvent
+class AfterProcessingMessagesEvent extends AbstractAMQPEvent
 {
-    const NAME = AMQPEvent::AFTER_PROCESSING_MESSAGE;
+    const NAME = 'after_processing';
 
     /**
      * AfterProcessingMessageEvent constructor.
@@ -21,6 +21,7 @@ class AfterProcessingMessagesEvent extends AMQPEvent
      */
     public function __construct(Consumer $consumer, array $messages)
     {
-        $this->setConsumer($consumer);
+        $this->consumer = $consumer;
+        $this->messages = $messages;
     }
 }

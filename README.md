@@ -56,88 +56,121 @@ public function registerBundles()
 
 Enjoy !
 
-### For a console application that uses Symfony Console, Dependency Injection and Config components ###
-
-If you have a console application used to run RabbitMQ consumers, you do not need Symfony HttpKernel and FrameworkBundle.
-From version 1.6, you can use the Dependency Injection component to load this bundle configuration and services, and then use the consumer command.
-
-Require the bundle in your composer.json file:
-
-```
-{
-    "require": {
-        "emag-tech-labs/rabbitmq-bundle": "^2.0",
-    }
-}
-```
-
-Register the extension and the compiler pass:
-
-```php
-use OldSound\RabbitMqBundle\DependencyInjection\OldSoundRabbitMqExtension;
-use OldSound\RabbitMqBundle\DependencyInjection\Compiler\RegisterPartsPass;
-
-// ...
-
-$containerBuilder->registerExtension(new OldSoundRabbitMqExtension());
-$containerBuilder->addCompilerPass(new RegisterPartsPass());
-```
-
-### Warning - BC Breaking Changes ###
-
-* Since 2012-06-04 Some default options for exchanges declared in the "producers" config section
-  have changed to match the defaults of exchanges declared in the "consumers" section.
-  The affected settings are:
-
-  * `durable` was changed from `false` to `true`,
-  * `auto_delete` was changed from `true` to `false`.
-
-  Your configuration must be updated if you were relying on the previous default values.
-* Since 2012-04-24 The ConsumerInterface::execute method signature has changed
-* Since 2012-01-03 the consumers execute method gets the whole AMQP message object and not just the body. See the CHANGELOG file for more details.
-
 ## Usage ##
 
 Add the `old_sound_rabbit_mq` section in your configuration file:
 
 ```yaml
 old_sound_rabbit_mq:
-    connections:
-        default:
-            host:     'localhost'
-            port:     5672
-            user:     'guest'
-            password: 'guest'
-            vhost:    '/'
-            lazy:     false
-            connection_timeout: 3
-            read_write_timeout: 3
+  connections:
+    infrastructure:
+      host: 'rabbitmq'
+      port: 5672
+      user: 'user'
+      password: 'user'
+      vhost: '/'
+      lazy: false
+      connection_timeout: 3
+      read_write_timeout: 3
 
-            # requires php-amqplib v2.4.1+ and PHP5.4+
-            keepalive: false
+      # requires php-amqplib v2.4.1+ and PHP5.4+
+      keepalive: false
 
-            # requires php-amqplib v2.4.1+
-            heartbeat: 0
+      # requires php-amqplib v2.4.1+
+      heartbeat: 0
+    crm:
+      # A different (unused) connection defined by an URL. One can omit all parts,
+      # except the scheme (amqp:). If both segment in the URL and a key value (see above)
+      # are given the value from the URL takes precedence.
+      # See https://www.rabbitmq.com/uri-spec.html on how to encode values.
+      url: 'amqp://user:user@rabbitmq:5672?lazy=1&connection_timeout=6'
 
-            #requires php_sockets.dll
-            use_socket: true # default false
-        another:
-            # A different (unused) connection defined by an URL. One can omit all parts,
-            # except the scheme (amqp:). If both segment in the URL and a key value (see above)
-            # are given the value from the URL takes precedence.
-            # See https://www.rabbitmq.com/uri-spec.html on how to encode values.
-            url: 'amqp://guest:password@localhost:5672/vhost?lazy=1&connection_timeout=6'
-    producers:
-        upload_picture:
-            connection:       default
-            exchange_options: {name: 'upload-picture', type: direct}
-            service_alias:    my_app_service # no alias by default
-    consumers:
-        upload_picture:
-            connection:       default
-            exchange_options: {name: 'upload-picture', type: direct}
-            queue_options:    {name: 'upload-picture'}
-            callback:         upload_picture_service
+  declarations:
+    exchanges:
+      # infrastructure
+      - name: logs
+        type: topic
+        bindings:
+          - { destination: info_logs, routing_keys: ['debug', 'info'] }
+          - { destination: warning_logs, routing_keys: ['notice', 'warning'] }
+          - { destination: critical_logs, routing_keys: ['error', 'critical'] }
+          - { destination: emergency_logs, routing_keys: ['alert', 'emergency'] }
+
+      # crm
+      - { name: orders, type: topic }
+
+    queues:
+      # infrastructure
+      info_logs: ~
+        # default
+        # name: info_logs by default key
+        # durable: true
+      # auto_delete: false
+      warning_logs: ~
+      critical_logs: ~
+      emergency_logs: ~
+
+      # crm
+      high_priority_orders: ~
+
+    # alternative way to declare bindings
+    bindings:
+      # payment
+      - { exchange: bills, destination: bills, routing_key: 'baz.*' }
+      # market
+      - { exchange: orders, destination: high_priority_orders, routing_key: 'high' }
+
+
+  producers:
+    # infrastructure
+    logs:
+      connection: infrastructure
+      exchange: logs
+      #auto_declare: "@=kernel.environment !== 'prod'" by default
+
+    # crm
+    orders:
+      connection: crm
+      exchange: orders
+
+  consumers:
+    # infrastructure
+    logs:
+      connection: infrastructure
+      consumeQueues:
+        - { queue: info_logs, callback: App\Consumer\BatchLogsConsumer, batch_count: 500, qos_prefetch_count: 500 }
+        - { queue: warning_logs, callback: App\Consumer\BatchLogsConsumer, batch_count: 100, qos_prefetch_count: 100 }
+        - { queue: critical_logs, callback: App\Consumer\BatchLogsConsumer, batch_count: 3, qos_prefetch_count: 3 }
+        - { queue: emergency_logs, callback: App\Consumer\BatchLogsConsumer, batch_count: 1, qos_prefetch_count: 10 }
+
+    # crm
+    high_priority_orders:
+      connection: crm
+      consumeQueues:
+        - { queue: high_priority_orders, callback: App\Consumer\OrdersConsumer }
+      timeout_wait: 4
+    anon_orders: # anon
+      connection: crm
+      consumeQueues:
+        - { queue: anon_orders, callback: App\Service\Handler, exclusive: true, auto_delete: true }
+    rpc_sum:
+      connection: crm
+      consumeQueues:
+        - { queue: rpc_sum, callback: App\Service\RpcSumHandler }
+```
+
+```shell
+  bin/console rabbitmq:consumer logs -vvv
+  
+  echo "Internal project is not available" | bin/console rabbitmq:stdin-producer logs -f raw -r alert
+  
+  echo "Some error happened" | bin/console rabbitmq:stdin-producer logs -f raw -r error
+  echo "Some error happened" | bin/console rabbitmq:stdin-producer logs -f raw -r error
+  echo "Some error happened" | bin/console rabbitmq:stdin-producer logs -f raw -r error
+  
+  bin/console rabbitmq:consumer high_priority_orders -vvv
+  
+  echo "Order #4" | bin/console rabbitmq:stdin-producer orders -f raw -r high
 ```
 
 Here we configure the connection service and the message endpoints that our application will have. In this example your service container will contain the service `old_sound_rabbit_mq.upload_picture_producer` and `old_sound_rabbit_mq.upload_picture_consumer`. The later expects that there's a service called `upload_picture_service`.
