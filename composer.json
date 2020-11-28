@@ -4,20 +4,26 @@
     "description": "Integrates php-amqplib with Symfony & RabbitMq. Formerly php-amqplib/rabbitmq-bundle, oldsound/rabbitmq-bundle.",
     "keywords": ["symfony", "symfony4", "symfony5", "rabbitmq", "message", "queue", "amqp"],
     "license": "MIT",
-    "authors": [{
+    "authors": [
+      {
         "name" : "Alvaro Videla"
-    }],
+      },
+      {
+        "name" : "Aleksandr Arofikin",
+        "email": "sashaaro@gmail.com"
+      }
+    ],
     "require": {
-        "php":                          "^7.1",
-        "symfony/dependency-injection": "^4.3|^5.0",
-        "symfony/event-dispatcher":     "^4.3|^5.0",
-        "symfony/config":               "^4.3|^5.0",
-        "symfony/yaml":                 "^4.3|^5.0",
-        "symfony/console":              "^4.3|^5.0",
-        "php-amqplib/php-amqplib":      "^2.12.1",
-        "psr/log":                      "^1.0",
-        "symfony/http-kernel": "^4.4|^5.0",
-        "symfony/framework-bundle": "^4.4|^5.0"
+      "php": "^7.4",
+      "symfony/dependency-injection": "^4.3|^5.0",
+      "symfony/event-dispatcher": "^4.3|^5.0",
+      "symfony/config": "^4.3|^5.0",
+      "symfony/yaml": "^4.3|^5.0",
+      "symfony/console": "^4.3|^5.0",
+      "php-amqplib/php-amqplib": "^2.12.1",
+      "psr/log": "^1.0",
+      "symfony/http-kernel": "^4.4|^5.0",
+      "symfony/framework-bundle": "^4.4|^5.0"
     },
     "require-dev": {
         "symfony/serializer":           "^4.3|^5.0",

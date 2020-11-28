@@ -27,9 +27,9 @@ All the examples expect a running RabbitMQ server.
 
 This bundle was presented at [Symfony Live Paris 2011](http://www.symfony-live.com/paris/schedule#session-av1) conference. See the slides [here](http://www.slideshare.net/old_sound/theres-a-rabbit-on-my-symfony).
 
-## Version 2 ##
-Due to the breaking changes happened caused by Symfony >=4.4, a new tag was released, making the bundle compatible with Symfony >=4.4.
-Also it eliminates a lot notices caused by symfony event dispatcher in Symfony 4.3.
+## Version 3 ##
+Rework yaml configuration bundle.
+See `old_sound_rabbit_mq.yaml` below for more details
 
 ## Installation ##
 
@@ -72,11 +72,7 @@ old_sound_rabbit_mq:
       lazy: false
       connection_timeout: 3
       read_write_timeout: 3
-
-      # requires php-amqplib v2.4.1+ and PHP5.4+
       keepalive: false
-
-      # requires php-amqplib v2.4.1+
       heartbeat: 0
     crm:
       # A different (unused) connection defined by an URL. One can omit all parts,
@@ -107,7 +103,9 @@ old_sound_rabbit_mq:
         # durable: true
       # auto_delete: false
       warning_logs: ~
+        # arguments: {'x-message-ttl': ['I', 20000]} TODO
       critical_logs: ~
+        # arguments: {'x-ha-policy': ['S', 'all']} }
       emergency_logs: ~
 
       # crm
@@ -136,13 +134,19 @@ old_sound_rabbit_mq:
   consumers:
     # infrastructure
     logs:
-      connection: infrastructure
-      consumeQueues:
+      connection: infrastructure # without specify would be equals 'default'
+      # idle_timeout: 60
+      # idle_timeout_exit_code: 0
+      # timeout_wait: 10
+      # graceful_max_execution:
+      #   timeout: 1800 # 30 minutes 
+      #   exit_code: 10 # default is 0 
+      consumeQueues: # Here is how you can set a consumer with multiple queues:
         - { queue: info_logs, callback: App\Consumer\BatchLogsConsumer, batch_count: 500, qos_prefetch_count: 500 }
         - { queue: warning_logs, callback: App\Consumer\BatchLogsConsumer, batch_count: 100, qos_prefetch_count: 100 }
         - { queue: critical_logs, callback: App\Consumer\BatchLogsConsumer, batch_count: 3, qos_prefetch_count: 3 }
-        - { queue: emergency_logs, callback: App\Consumer\BatchLogsConsumer, batch_count: 1, qos_prefetch_count: 10 }
-
+        - { queue: emergency_logs, callback: App\Consumer\BatchLogsConsumer, batch_count: 1, qos_prefetch_count: 10 } 
+      
     # crm
     high_priority_orders:
       connection: crm
@@ -156,9 +160,15 @@ old_sound_rabbit_mq:
     rpc_sum:
       connection: crm
       consumeQueues:
-        - { queue: rpc_sum, callback: App\Service\RpcSumHandler }
+        - queue: rpc_sum # rpc request queue
+          callback: App\Consumer\RpcCalculatorConsumer
+          serializer: json_encode # rpc
+          # batch_count: ~
+          # qos_prefetch_size: 0
+          # qos_prefetch_count: 10
 ```
 
+Example to using
 ```shell
   bin/console rabbitmq:consumer logs -vvv
   
@@ -179,15 +189,7 @@ If you don't specify a connection for the client, the client will look for a con
 
 If you need to add optional queue arguments, then your queue options can be something like this:
 
-```yaml
-queue_options: {name: 'upload-picture', arguments: {'x-ha-policy': ['S', 'all']}}
-```
-
 another example with message TTL of 20 seconds:
-
-```yaml
-queue_options: {name: 'upload-picture', arguments: {'x-message-ttl': ['I', 20000]}}
-```
 
 The argument value must be a list of datatype and value. Valid datatypes are:
 
@@ -199,16 +201,6 @@ The argument value must be a list of datatype and value. Valid datatypes are:
 * `A` - Array
 
 Adapt the `arguments` according to your needs.
-
-If you want to bind queue with specific routing keys you can declare it in producer or consumer config:
-
-```yaml
-queue_options:
-    name: "upload-picture"
-    routing_keys:
-      - 'android.#.upload'
-      - 'iphone.upload'
-```
 
 ### Important notice - Lazy Connections ###
 
@@ -231,33 +223,28 @@ override parameters programmatically through a service.
 e.g. In a scenario when the `vhost` parameter of the connection depends on the current tenant of your white-labeled
 application and you do not want (or can't) change it's configuration every time.
 
-Define a service under `connection_parameters_provider` that implements the `ConnectionParametersProviderInterface`,
-and add it to the appropriate `connections` configuration.
-
+Example Implementation:
 ```yaml
-connections:
-    default:
-        host:     'localhost'
-        port:     5672
-        user:     'guest'
-        password: 'guest'
-        vhost:    'foo' # to be dynamically overridden by `connection_parameters_provider`
-        connection_parameters_provider: connection_parameters_provider_service
+services:
+  app.my_rabbit_connection_factory:
+    class: App\MyRabbitmqConnectionFactory
+  app.my_rabbit_connection:
+    class: PhpAmqpLib\Connection\AMQPAbstractConnection
+    factory: ['app.my_rabbit_connection_factory', 'create']
+    arguments: ['special_server_label']
+  old_sound_rabbit_mq.connection.my_dynamic: # my_dynamic would be support as value in old_sound_rabbit_mq for connection parameter
+    alias: '@app.my_rabbit_connection' 
 ```
 
-Example Implementation:
-
 ```php
-class ConnectionParametersProviderService implements ConnectionParametersProvider {
-    ...
-    public function getConnectionParameters() {
-        return array('vhost' => $this->getVhost());
-    }
-    ...
+<?php
+class MyRabbitmqConnectionFactory
+{
+    public function create($serverLabel): AMQPAbstractConnection { /* create dynamically */ }
 }
 ```
 
-In this case, the `vhost` parameter will be overridden by the output of `getVhost()`.
+In this case, the AMQPAbstractConnection will be craeted from MyRabbitmqConnectionFactory service.
 
 ## Producers, Consumers, What? ##
 
@@ -272,8 +259,8 @@ Now let's say that you want to process picture uploads in the background. After 
 ```php
 public function indexAction($name)
 {
-    $msg = array('user_id' => 1235, 'image_path' => '/path/to/new/pic.png');
-    $this->get('old_sound_rabbit_mq.upload_picture_producer')->publish(serialize($msg));
+    $msg = ['order_id' => 1235, 'items' => '/path/to/new/pic.png'];
+    $this->get('old_sound_rabbit_mq.producer.order')->publish(serialize($msg), 'high');
 }
 ```
 
@@ -287,21 +274,6 @@ delivery mode respectively. Default values are __text/plain__ for content type a
 ```php
 $this->get('old_sound_rabbit_mq.upload_picture_producer')->setContentType('application/json');
 ```
-
-If you need to use a custom class for a producer (which should inherit from `OldSound\RabbitMqBundle\RabbitMq\Producer`), you can use the `class` option:
-
-```yaml
-    ...
-    producers:
-        upload_picture:
-            class: My\Custom\Producer
-            connection: default
-            exchange_options: {name: 'upload-picture', type: direct}
-    ...
-```
-
-
-The next piece of the puzzle is to have a consumer that will take the message out of the queue and process it accordingly.
 
 ### Consumers ###
 
@@ -360,93 +332,18 @@ $ ./app/console rabbitmq:delete --no-confirmation upload_picture
 
 #### Consumer Events ####
 
-This can be useful in many scenarios.
-There are 3 AMQPEvents:
-##### ON CONSUME #####
-```php
-class OnConsumeEvent extends AMQPEvent
-{
-    const NAME = AMQPEvent::ON_CONSUME;
+See `\OldSound\RabbitMqBundle\Event\...` events
+# TODO
 
-    /**
-     * OnConsumeEvent constructor.
-     *
-     * @param Consumer $consumer
-     */
-    public function __construct(Consumer $consumer)
-    {
-        $this->setConsumer($consumer);
-    }
-}
-```
 
-Let`s say you need to sleep / stop consumer/s on a new application deploy.
-You can listen for OnConsumeEvent (\OldSound\RabbitMqBundle\Event\OnConsumeEvent) and check for new application deploy.
-
-##### BEFORE PROCESSING MESSAGE #####
-
-```php
-class BeforeProcessingMessageEvent extends AMQPEvent
-{
-    const NAME = AMQPEvent::BEFORE_PROCESSING_MESSAGE;
-
-    /**
-     * BeforeProcessingMessageEvent constructor.
-     *
-     * @param AMQPMessage $AMQPMessage
-     */
-    public function __construct(Consumer $consumer, AMQPMessage $AMQPMessage)
-    {
-        $this->setConsumer($consumer);
-        $this->setAMQPMessage($AMQPMessage);
-    }
-}
-``` 
 Event raised before processing a AMQPMessage.
 
-##### AFTER PROCESSING MESSAGE #####
-
-```php
-class AfterProcessingMessageEvent extends AMQPEvent
-{
-    const NAME = AMQPEvent::AFTER_PROCESSING_MESSAGE;
-
-    /**
-     * AfterProcessingMessageEvent constructor.
-     *
-     * @param AMQPMessage $AMQPMessage
-     */
-    public function __construct(Consumer $consumer, AMQPMessage $AMQPMessage)
-    {
-        $this->setConsumer($consumer);
-        $this->setAMQPMessage($AMQPMessage);
-    }
-}
-``` 
 Event raised after processing a AMQPMessage.
 If the process message will throw an Exception the event will not raise.
 
 ##### IDLE MESSAGE #####
 
-```php
-<?php
-class OnIdleEvent extends AMQPEvent
-{
-    const NAME = AMQPEvent::ON_IDLE;
-
-    /**
-     * OnIdleEvent constructor.
-     *
-     * @param AMQPMessage $AMQPMessage
-     */
-    public function __construct(Consumer $consumer)
-    {
-        $this->setConsumer($consumer);
-        
-        $this->forceStop = true;
-    }
-}
-```
+OnIdleEvent
 
 Event raised when `wait` method exit by timeout without receiving a message. 
 In order to make use of this event a consumer `idle_timeout` has to be [configured](#idle-timeout). 
@@ -457,33 +354,10 @@ By default process exit on idle timeout, you can prevent it by setting `$event->
 If you need to set a timeout when there are no messages from your queue during a period of time, you can set the `idle_timeout` in seconds.
 The `idle_timeout_exit_code` specifies what exit code should be returned by the consumer when the idle timeout occurs. Without specifying it, the consumer will throw an **PhpAmqpLib\Exception\AMQPTimeoutException** exception.
 
-```yaml
-consumers:
-    upload_picture:
-        connection:             default
-        exchange_options:       {name: 'upload-picture', type: direct}
-        queue_options:          {name: 'upload-picture'}
-        callback:               upload_picture_service
-        idle_timeout:           60
-        idle_timeout_exit_code: 0
-```
-
 #### Timeout wait ####
 
 Set the `timeout_wait` in seconds.
 The `timeout_wait` specifies how long the consumer will wait without receiving a new message before ensuring the current connection is still valid.
-
-```yaml
-consumers:
-    upload_picture:
-        connection:             default
-        exchange_options:       {name: 'upload-picture', type: direct}
-        queue_options:          {name: 'upload-picture'}
-        callback:               upload_picture_service
-        idle_timeout:           60
-        idle_timeout_exit_code: 0
-        timeout_wait:           10
-```
 
 #### Graceful max execution timeout ####
 
@@ -492,19 +366,6 @@ If you'd like your consumer to be running up to certain time and then gracefully
 The `graceful_max_execution.exit_code` specifies what exit code should be returned by the consumer when the graceful max execution timeout occurs. Without specifying it, the consumer will exit with status `0`.
 
 This feature is great in conjuction with supervisord, which together can allow for periodical memory leaks cleanup, connection with database/rabbitmq renewal and more.
-
-```yaml
-consumers:
-    upload_picture:
-        connection:             default
-        exchange_options:       {name: 'upload-picture', type: direct}
-        queue_options:          {name: 'upload-picture'}
-        callback:               upload_picture_service
-
-        graceful_max_execution:
-            timeout: 1800 # 30 minutes 
-            exit_code: 10 # default is 0 
-```
 
 #### Fair dispatching ####
 
@@ -520,16 +381,6 @@ Be careful as implementing the fair dispatching introduce a latency that will hu
 You should evaluate, as the blogpost recommends, the right value of prefetch_size accordingly with the time taken to process each message and your network performance.
 
 With RabbitMqBundle, you can configure that qos_options per consumer like that:
-
-```yaml
-consumers:
-    upload_picture:
-        connection:       default
-        exchange_options: {name: 'upload-picture', type: direct}
-        queue_options:    {name: 'upload-picture'}
-        callback:         upload_picture_service
-        qos_options:      {prefetch_size: 0, prefetch_count: 1, global: false}
-```
 
 ### Callbacks ###
 
@@ -605,22 +456,7 @@ So far we just have sent messages to consumers, but what if we want to get a rep
 
 Let's add a RPC client and server into the configuration:
 
-```yaml
-rpc_clients:
-    integer_store:
-        connection: default #default: default
-        unserializer: json_decode #default: unserialize
-        lazy: true #default: false
-        direct_reply_to: false
-rpc_servers:
-    random_int:
-        connection: default
-        callback:   random_int_server
-        qos_options: {prefetch_size: 0, prefetch_count: 1, global: false}
-        exchange_options: {name: random_int, type: topic}
-        queue_options: {name: random_int_queue, durable: false, auto_delete: true}
-        serializer: json_encode
-```
+# TODO
 
 *For a full configuration reference please use the `php app/console config:dump-reference old_sound_rabbit_mq` command.*
 
@@ -633,6 +469,8 @@ $ ./app/console_dev rabbitmq:rpc-server random_int
 ```
 
 And then add the following code to our controller:
+
+#TODO
 
 ```php
 public function indexAction($name)
@@ -656,6 +494,7 @@ The final piece is to get the reply. Our PHP script will block till the server r
 By default the RPC Client expects the response to be serialized. If the server you are working with returns a non-serialized result then set the RPC client expect_serialized_response option to false. For example, if the integer_store server didn't serialize the result the client would be set as below:
 
 ```yaml
+#TODO
 rpc_clients:
     integer_store:
         connection: default
@@ -686,6 +525,7 @@ As you can guess, we can also make __parallel RPC calls__.
 Let's say that for rendering some webpage, you need to perform two database queries, one taking 5 seconds to complete and the other one taking 2 seconds –very expensive queries–. If you execute them sequentially, then your page will be ready to deliver in about 7 seconds. If you run them in parallel then you will have your page served in about 5 seconds. With RabbitMqBundle we can do such parallel calls with ease. Let's define a parallel client in the config and another RPC server:
 
 ```yaml
+#TODO
 rpc_clients:
     parallel:
         connection: default
@@ -701,6 +541,7 @@ rpc_servers:
 Then this code should go in our controller:
 
 ```php
+@TODO
 public function indexAction($name)
 {
     $client = $this->get('old_sound_rabbit_mq.parallel_rpc');
@@ -726,38 +567,9 @@ some tasks together without losing flexibility and separation principle.
 
 Multiple consumers allow you to handle this use case by listening to multiple queues on the same consumer.
 
-Here is how you can set a consumer with multiple queues:
+Specify multiple queues for `consumeQueues` direcitve.
 
-```yaml
-multiple_consumers:
-    upload:
-        connection:       default
-        exchange_options: {name: 'upload', type: direct}
-        queues_provider: queues_provider_service
-        queues:
-            upload-picture:
-                name:     upload_picture
-                callback: upload_picture_service
-                routing_keys:
-                    - picture
-            upload-video:
-                name:     upload_video
-                callback: upload_video_service
-                routing_keys:
-                    - video
-            upload-stats:
-                name:     upload_stats
-                callback: upload_stats
-```
-
-The callback is now specified under each queues and must implement the `ConsumerInterface` like a simple consumer.
-All the options of `queues-options` in the consumer are available for each queue.
-
-Be aware that all queues are under the same exchange, it's up to you to set the correct routing for callbacks.
-
-The `queues_provider` is a optional service that dynamically provides queues.
-It must implement `QueuesProviderInterface`.
-
+# TODO
 Be aware that queues providers are responsible for the proper calls to `setDequeuer` and that callbacks are callables
 (not `ConsumerInterface`). In case service providing queues implements `DequeuerAwareInterface`, a call to
 `setDequeuer` is added to the definition of the service with a `DequeuerInterface` currently being a `MultipleConsumer`.
@@ -784,24 +596,16 @@ Dynamic consumers allow you to define the consumers queue options programmatical
 
 e.g. In a scenario when the defined consumer must be responsible for a dynamic number of topics and you do not want (or can't) change it's configuration every time.
 
-Define a service `queue_options_provider` that implements the `QueueOptionsProviderInterface`, and add it to your `dynamic_consumers` configuration.
-
 ```yaml
-dynamic_consumers:
-    proc_logs:
-        connection: default
-        exchange_options: {name: 'logs', type: topic}
-        callback: parse_logs_service
-        queue_options_provider: queue_options_provider_service
+service:
+    app.my_consumer_factory:
+      class: App\ConsumerFactory
+    app.my_dynamic_consumer:
+        class: OldSound\RabbitMqBundle\RabbitMq\Consumer
+        factory: "@app.my_consumer_factory"
+        tags:
+          - { old_sound_rabbit_mq.consumer: { name: 'my_dynamic_consumer' } } # allow use for "bin/console rabbitmq:consumer" command
 ```
-
-Example Usage:
-
-```bash
-$ ./app/console rabbitmq:dynamic-consumer proc_logs server1
-```
-
-In this case the `proc_logs` consumer runs for `server1` and it can decide over the queue options it uses.
 
 ### Anonymous Consumers ###
 
@@ -818,34 +622,16 @@ Since we don't want to be filling up queues with unlimited logs what we can do i
 
 When we start an Anonymous Consumer, it will take care of such details and we just have to think about implementing the callback for when the messages arrive. Is it called Anonymous because it won't specify a queue name, but it will wait for RabbitMQ to assign a random one to it.
 
-Now, how to configure and run such consumer?
+Specify `anon` as true for consumer
 
 ```yaml
-anon_consumers:
+consumers:
     logs_watcher:
-        connection:       default
-        exchange_options: {name: 'app-logs', type: topic}
-        callback:         logs_watcher
+        connection: default
+        anon: true
+        consumeQueues:
+          ...
 ```
-
-There we specify the exchange name and it's type along with the callback that should be executed when a message arrives.
-
-This Anonymous Consumer is now able to listen to Producers, which are linked to the same exchange and of type _topic_:
-
-```yaml
-    producers:
-        app_logs:
-            connection:       default
-            exchange_options: {name: 'app-logs', type: topic}
-```
-
-To start an _Anonymous Consumer_ we use the following command:
-
-```bash
-$ ./app/console_dev rabbitmq:anon-consumer -m 5 -r '#.error' logs_watcher
-```
-
-The only new option compared to the commands that we have seen before is the one that specifies the __routing key__: `-r '#.error'`.
 
 ### Batch Consumers ###
 
@@ -853,48 +639,32 @@ In some cases you will want to get a batch of messages and then do some processi
 
 e.g: Imagine that you have a queue where you receive a message for inserting some information in the database, and you realize that if you do a batch insert is much better then by inserting one by one.
 
-Define a callback service that implements `BatchConsumerInterface` and add the definition of the consumer to your configuration.
-
-```yaml
-batch_consumers:
-    batch_basic_consumer:
-        connection:       default
-        exchange_options: {name: 'batch', type: fanout}
-        queue_options:    {name: 'batch'}
-        callback:         batch.basic
-        qos_options:      {prefetch_size: 0, prefetch_count: 2, global: false}
-        timeout_wait:     5
-        auto_setup_fabric: false
-        idle_timeout_exit_code: -2
-        keep_alive: false
-        graceful_max_execution:
-            timeout: 60
-```
+Specify `batchCount` for `consumeQueues` item
+# TODO
 
 *Note*: If the `keep_alive` option is set to `true`, `idle_timeout_exit_code` will be ignored and the consumer process continues.
 
 You can implement a batch consumer that will acknowledge all messages in one return or you can have control on what message to acknoledge.
 
 ```php
-namespace AppBundle\Service;
+namespace App\Consumer;
 
 use OldSound\RabbitMqBundle\RabbitMq\BatchConsumerInterface;
-use PhpAmqpLib\Message\AMQPMessage;
+use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
 
-class DevckBasicConsumer implements BatchConsumerInterface
+class BatchLogsConsumer implements BatchConsumerInterface
 {
     /**
      * @inheritDoc
      */
     public function batchExecute(array $messages)
     {
-        echo sprintf('Doing batch execution%s', PHP_EOL);
         foreach ($messages as $message) {
             $this->executeSomeLogicPerMessage($message);
         }
-
+        $this->persist($messages);
         // you ack all messages got in batch
-        return true; 
+        return ConsumerInterface::MSG_ACK;
     }
 }
 ```
@@ -939,64 +709,9 @@ class DevckBasicConsumer implements BatchConsumerInterface
 }
 ```
 
-How to run the following batch consumer:
-
-```bash
-    $ ./bin/console rabbitmq:batch:consumer batch_basic_consumer -w
-```
-
-Important: BatchConsumers will not have the -m|messages option available
-
-### Group Consumer Command ###
-
-Consume multiple queues by one worker command for reduce complexity and simplify debugging.
-A lot of running php commands can consume significant memory size and would be not convinient in development and testing environment which no need parallel executation.
-
-You can consume all defined queues with default group
-```bash
-    $ ./bin/console rabbitmq:group:consumer default
-```
-
-Specify group and run together with one worker.
-```yaml
-consumers:
-    deposit:
-        connection:             default
-        exchange_options:       {name: 'deposit', type: direct}
-        queue_options:          {name: 'deposit'}
-        ...
-        groups:                 ['payment'] # without specify will be equals ['default']
-
-    withdraw:
-        connection:             default
-        exchange_options:       {name: 'withdraw', type: direct}
-        ...
-        groups:                 ['payment']
-
-group_consumer:
-    default:
-        #connection:             default
-        qos_options:
-            prefetch_size:      10
-            prefetch_count:     10
-    payment:
-        connection:             payment_connection
-        timeout_wait:       30
-```
-```bash
-    $ ./bin/console rabbitmq:group:consumer payment
-```
-
 ### STDIN Producer ###
 
 There's a Command that reads data from STDIN and publishes it to a RabbitMQ queue. To use it first you have to configure a `producer` service in your configuration file like this:
-
-```yaml
-producers:
-    words:
-      connection:       default
-      exchange_options: {name: 'words', type: direct}
-```
 
 That producer will publish messages to the `words` direct exchange. Of course you can adapt the configuration to whatever you like.
 
@@ -1041,7 +756,7 @@ Launching a command for each consumer can be a nightmare when the number of cons
 In order to create exchanges, queues and bindings at once and be sure you will not lose any message, you can run the following command:
 
 ```bash
-$ ./app/console rabbitmq:setup-fabric
+$ ./app/console rabbitmq:declare
 ```
 
 When desired, you can configure your consumers and producers to assume the RabbitMQ fabric is already defined. To do this, add the following to your configuration:
@@ -1049,10 +764,7 @@ When desired, you can configure your consumers and producers to assume the Rabbi
 ```yaml
 producers:
     upload_picture:
-      auto_setup_fabric: false
-consumers:
-    upload_picture:
-      auto_setup_fabric: false
+      auto_declare: false
 ```
 
 By default a consumer or producer will declare everything it needs with RabbitMQ when it starts.
@@ -1065,18 +777,39 @@ Be careful using this, when exchanges or queues are not defined, there will be e
 apiVersion: v1
 kind: Pod
 metadata:
-  name: queue-consumer
+  name: infrastructure
   labels:
-    app: myapp
+    app: infrastructure
 spec:
   containers:
-  - name: bill-consumer
-    image: my-symfony-app:latest
-    command: ['bin/console', 'rabbitmq:consume', '--skip-declare', 'bills']
+    - name: logs-consumer
+      image: my-symfony-app:latest
+      command: ['bin/console', 'rabbitmq:consume', '--skip-declare', 'logs']
   initContainers:
-  - name: declare-rabbitmq
-    image: my-symfony-app:latest
-    command: ['bin/console', 'rabbitmq:declare']
+   - name: declare-rabbitmq
+     image: my-symfony-app:latest
+     command: ['bin/console', 'rabbitmq:declare', 'infrastructure'] # specify connection name
+```
+
+Don't forgot create declarations for producers of your web project
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: crm
+  labels:
+    app: crm
+spec:
+  containers:
+    - name: web
+      image: my-nginx:latest
+    - name: crm-php-fpm
+      image: my-symfony-app:latest
+  initContainers:
+   - name: declare-rabbitmq
+     image: my-symfony-app:latest
+     command: ['bin/console', 'rabbitmq:declare', 'crm'] # specify connection name
 ```
 
 ## How To Contribute ##
