@@ -233,10 +233,6 @@ class OldSoundRabbitMqExtension extends Extension
             //    $this->injectTraceableChannel($definition, $key, $producer['connection']);
             //}
 
-            //if (!$producer['auto_setup_fabric']) {
-            //    $definition->addMethodCall('disableAutoSetupFabric');
-            //}
-
             if (isset($producer['auto_declare'])) {
                 $definition->setProperty('autoDeclare', $producer['auto_declare'] ?? $defaultAutoDeclare);
             }
@@ -292,14 +288,9 @@ class OldSoundRabbitMqExtension extends Extension
                 ]);
             }
 
-            if ($this->container->has('event_dispatcher')) {
-                $definition->addMethodCall('setEventDispatcher', [
-                    new Reference(
-                        'event_dispatcher',
-                        ContainerInterface::IGNORE_ON_INVALID_REFERENCE
-                    )
-                ]);
-            }
+            $definition->addMethodCall('setEventDispatcher', [
+                new Reference('event_dispatcher', ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+            ]);
 
             /* TODO if (array_key_exists('qos_options', $consumer)) {
                 $definition->addMethodCall('setQosOptions', array(

@@ -20,6 +20,9 @@
     <services>
         <defaults autowire="true" autoconfigure="true"/>
 
+        <service id="old_sound_rabbit_mq.subscriber.after_processing_services_resetter" class="OldSound\RabbitMqBundle\EventListener\ServicesResetterSubscriber" public="true" autoconfigure="false">
+            <argument type="service" id="services_resetter" />
+        </service>
         <service id="old_sound_rabbit_mq.data_collector" class="%old_sound_rabbit_mq.data_collector.class%">
             <argument type="collection" />
             <tag name="data_collector" template="@OldSoundRabbitMq/Collector/collector.html.twig" id="rabbit_mq" />

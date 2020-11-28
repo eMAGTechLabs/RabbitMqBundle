@@ -12,7 +12,7 @@ use PhpAmqpLib\Message\AMQPMessage;
  */
 class AfterProcessingMessagesEvent extends AbstractAMQPEvent
 {
-    const NAME = 'after_processing';
+    const NAME = 'old_sound_rabbit_mq.after_processing';
 
     /**
      * AfterProcessingMessageEvent constructor.

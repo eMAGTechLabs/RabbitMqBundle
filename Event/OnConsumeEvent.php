@@ -11,7 +11,7 @@ use OldSound\RabbitMqBundle\RabbitMq\Consumer;
  */
 class OnConsumeEvent extends AbstractAMQPEvent
 {
-    const NAME = 'on_consume';
+    const NAME = 'old_sound_rabbit_mq.on_consume';
 
     /**
      * OnConsumeEvent constructor.

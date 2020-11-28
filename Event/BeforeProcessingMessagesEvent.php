@@ -13,7 +13,7 @@ use PhpAmqpLib\Message\AMQPMessage;
  */
 class BeforeProcessingMessagesEvent extends AbstractAMQPEvent
 {
-    const NAME = 'before_processing';
+    const NAME = 'old_sound_rabbit_mq.before_processing';
 
     /** @var QueueConsuming */
     public $queueConsuming;

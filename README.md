@@ -336,9 +336,20 @@ See `\OldSound\RabbitMqBundle\Event\...` events
 # TODO
 
 
-Event raised before processing a AMQPMessage.
+Event raised before processing a AMQPMessages.
 
-Event raised after processing a AMQPMessage.
+#TODO
+
+Reset resettable services from container after processing a AMQPMessages.
+
+```yaml
+services:
+  app.subscriber.after_processing_services_resetter:
+    parent: 'old_sound_rabbit_mq.subscriber.after_processing_services_resetter'
+    tags:
+      - { name: kernel.event_subscriber }
+```
+
 If the process message will throw an Exception the event will not raise.
 
 ##### IDLE MESSAGE #####
