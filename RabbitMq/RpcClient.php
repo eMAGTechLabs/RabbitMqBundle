@@ -15,20 +15,25 @@ use PhpAmqpLib\Message\AMQPMessage;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Serializer\Serializer;
 
-class RpcClient
+class RpcClient implements BatchConsumerInterface
 {
-    /** @var QueueDeclaration */
-    private $anonRepliesQueue;
+
     /** @var string */
     private $name;
     /** @var AMQPChannel */
     private $channel;
-    /** @var MessageBodySerializerInterface[] */
-    private $serializers;
     /** @var int */
     private $expiration;
 
+    /** @var QueueDeclaration */
+    private $anonRepliesQueue;
+    /** @var MessageBodySerializerInterface[] */
+    private $serializers;
+
+    /** @var int */
     private $requests = 0;
+    /** @var AMQPMessage[] */
+    private $messages;
     private $replies = [];
 
     public function __construct(
@@ -90,6 +95,14 @@ class RpcClient
         $this->requests++;
     }
 
+    public function batchExecute(array $messages)
+    {
+        if ($this->messages !== null) {
+            throw new \LogicException('Rpc client consming should be called once by batch count limit');
+        }
+        $this->messages = $messages;
+    }
+
     /**
      * @param $name
      * @param MessageBodySerializerInterface $serializer
@@ -101,22 +114,12 @@ class RpcClient
             throw new \LogicException('request empty');
         }
 
-        $consumer = new Consumer('rpc_replies_' . $this->name, $this->channel);
+        $consumer = new Consumer($this->channel);
         $consuming = new QueueConsuming();
         $consuming->exclusive = true;
         $consuming->qosPrefetchCount = $this->requests;
         $consuming->queueName = $this->anonRepliesQueue->name;
-        $consuming->callback = new class() implements BatchConsumerInterface {
-            /** @var AMQPMessage[] */
-            public $messages;
-            public function batchExecute(array $messages)
-            {
-                if ($this->messages !== null) {
-                    throw new \LogicException('Rpc client consming should be called once by batch count limit');
-                }
-                $this->messages = $messages;
-            }
-        };
+        $consuming->callback = $this;
         $consumer->consumeQueue($consuming, new BatchExecuteCallbackStrategy($this->requests));
 
         try {
@@ -126,7 +129,7 @@ class RpcClient
         }
 
         $replices = [];
-        foreach($consuming->callback->messages as $message) {
+        foreach($this->messages as $message) {
             /** @var AMQPMessage $message */
             if (!$message->has('correlation_id')) {
                 $this->logger->error('unexpected message. rpc replies have no correlation_id ');

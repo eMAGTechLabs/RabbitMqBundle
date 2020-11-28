@@ -30,9 +30,7 @@ class Consumer
 {
     use LoggerAwareTrait;
     use EventDispatcherAwareTrait;
-    
-    /** @var string */
-    public $name;
+
     /** @var AMQPChannel */
     protected $channel;
     /** @var QueueConsuming[] */
@@ -78,17 +76,11 @@ class Consumer
     /** @var \DateTime|null */
     public $lastActivityDateTime;
 
-    public function __construct(string $name, AMQPChannel $channel)
+    public function __construct(AMQPChannel $channel)
     {
-        $this->name = $name;
         $this->channel = $channel;
         $this->logger = new NullLogger();
         $this->serializer = new JsonMessageBodySerializer();
-    }
-    
-    public function getName(): string
-    {
-        return $this->name;
     }
 
     public function getChannel(): AMQPChannel
@@ -247,12 +239,14 @@ class Consumer
             );
         }
 
-        $logAmqpContent = [
-            'consumer' => $this->name,
-            'queue' => $queueConsuming->queueName,
-        ] + (
-            $canPrecessMultiMessages ? ['messages' => $messages] : ['message' => $messages[0]]
-        );
+        $logAmqpContext = [
+            'queue' => $queueConsuming->queueName
+        ];
+        if ($canPrecessMultiMessages) {
+            $logAmqpContext['messages'] = $messages;
+        } else {
+            $logAmqpContext['message'] = $messages[0];
+        }
 
         try {
             $processFlags = null;
@@ -278,11 +272,12 @@ class Consumer
             }
 
             foreach ($messages as $message) {
-                $additionalParams = [];
-                if ($queueConsuming->noAck) {
-                    $additionalParams = ['return_code' => $processFlags[$message->getDeliveryTag()]];
+                $logContent = $logAmqpContext;
+                $flag = $processFlags[$message->getDeliveryTag()];
+                if (!$queueConsuming->noAck && is_int($flag)) {
+                    $logContent['return_code'] = $flag;
                 }
-                $this->logger->debug('Queue message processed', ['amqp' => $logAmqpContent + $additionalParams]);
+                $this->logger->debug('Queue message processed', ['amqp' => $logContent]);
 
                 $this->dispatchEvent(
                     AfterProcessingMessageEvent::NAME,
@@ -293,7 +288,7 @@ class Consumer
             $this->maybeStopConsumer();
         } catch (Exception\StopConsumerException $e) {
             $this->logger->info('Consumer requested restart', [
-                'amqp' => $logAmqpContent + ['stacktrace' => $e->getTraceAsString()]
+                'amqp' => $logAmqpContext + ['stacktrace' => $e->getTraceAsString()]
             ]);
             if (!$queueConsuming->noAck) {
                 $this->handleProcessMessage($msg, $e->getHandleCode());
@@ -301,7 +296,7 @@ class Consumer
             $this->stopConsuming();
         } catch (\Throwable $e) {
             $this->logger->error($e->getMessage(), [
-                'amqp' => $logAmqpContent + ['stacktrace' => $e->getTraceAsString()]
+                'amqp' => $logAmqpContext + ['stacktrace' => $e->getTraceAsString()]
             ]);
             throw $e;
         }

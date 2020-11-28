@@ -16,19 +16,19 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Logger\ConsoleLogger;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 
 class ConsumerCommand extends Command
 {
+    use ContainerAwareTrait;
     /** @var iterable|Consumer[] */
     protected $consumers;
     /** @var DeclarationsRegistry */
     protected $declarationsRegistry;
     
     public function __construct(
-        iterable $consumers,
         DeclarationsRegistry $declarationsRegistry
     ) {
-        $this->consumers = $consumers;
         $this->declarationsRegistry = $declarationsRegistry;
         parent::__construct();
     }
@@ -60,23 +60,14 @@ class ConsumerCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        iterator_to_array($this->consumers);
+        $alias = sprintf('old_sound_rabbit_mq.consumer.%s', $input->getArgument('name'));
+        if (!$this->container->has($alias)) {
+            $containerNames = ['ss']; // TODO
+            throw new InvalidArgumentException(sprintf('Allow consumers %s', join(', ', $containerNames)));
+        }
 
         /** @var Consumer $consumer */
-        $consumer = null;
-        foreach ($this->consumers as $c) {
-            if ($input->getArgument('name') === $c->name) {
-                $consumer = $c;
-            }
-        }
-        
-        if (!$consumer) {
-            $existNames = array_map(function ($c) {
-                return $c->getName();
-            }, iterator_to_array($this->consumers));
-
-            throw new InvalidArgumentException(sprintf('Allow consumers %s', join(', ', $existNames)));
-        }
+        $consumer = $this->container->get($alias);
         
         if (
             !is_null($input->getOption('memory-limit')) &&

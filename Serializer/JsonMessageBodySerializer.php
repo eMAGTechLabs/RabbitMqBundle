@@ -38,13 +38,11 @@ class JsonMessageBodySerializer implements MessageBodySerializerInterface
 
     public function deserialize(string $body)
     {
-        if ($this->deserializeType) {
-            $data = $this->serializer->deserialize($body, $this->deserializeType, 'json');
-        } else {
-            $data = json_decode($body, true);
-            if (isset($data['error_code'])) {
-                return new RpcResponseException(new RpcResponseException($data['message'], $data['error_code']));
-            }
+        $data = json_decode($body, true);
+        if (isset($data['error_code'])) {
+            return new RpcResponseException(new RpcResponseException($data['message'], $data['error_code']));
+        } else if ($this->deserializeType) {
+            return $this->serializer->deserialize($body, $this->deserializeType, 'json');
         }
 
 

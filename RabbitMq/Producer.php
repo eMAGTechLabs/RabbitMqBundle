@@ -17,7 +17,7 @@ use Psr\Log\NullLogger;
 class Producer implements ProducerInterface
 {
     use LoggerAwareTrait;
-    use EventDispatcherAwareTrait;
+    // TODO ?! use EventDispatcherAwareTrait;
 
     public $contentType = 'text/plain';
     public $deliveryMode = 2;

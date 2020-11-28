@@ -2,23 +2,37 @@
 
 namespace OldSound\RabbitMqBundle\DependencyInjection\Compiler;
 
+use OldSound\RabbitMqBundle\Logger\ExtraContextLogger;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 
 class RegisterPartsPass implements CompilerPassInterface
 {
     public function process(ContainerBuilder $container)
     {
-        $services = $container->findTaggedServiceIds('old_sound_rabbit_mq.base_amqp');
-        $container->setParameter('old_sound_rabbit_mq.base_amqp', array_keys($services));
-        if (!$container->hasDefinition('old_sound_rabbit_mq.parts_holder')) {
-            return;
+        $taggedConsumers = $container->findTaggedServiceIds('old_sound_rabbit_mq.consumer');
+
+        foreach ($taggedConsumers as $id => $tag) {
+            $definition = $container->getDefinition($id);
+
         }
 
-        $definition = $container->getDefinition('old_sound_rabbit_mq.parts_holder');
+        $taggedConsumers = $container->findTaggedServiceIds('old_sound_rabbit_mq.consumer');
+        foreach ($taggedConsumers as $id => $tags) {
+            $consumerName = $tags[0]['name'];
+            $originLogger = $id . '.logger';
 
-        $tags = array(
+            if ($container->hasDefinition($originLogger)) {
+                $consumerDef = $container->getDefinition($id);
+                $consumerDef->removeMethodCall('setLogger');
+                $loggerDef = new Definition(ExtraContextLogger::class, [new Reference($originLogger), ['consumer' => $consumerName]]);
+                $consumerDef->addMethodCall('setLogger', [$loggerDef]);
+            }
+        }
+
+        $tags = [
             'old_sound_rabbit_mq.base_amqp',
             'old_sound_rabbit_mq.binding',
             'old_sound_rabbit_mq.producer',
@@ -28,12 +42,6 @@ class RegisterPartsPass implements CompilerPassInterface
             'old_sound_rabbit_mq.batch_consumer',
             'old_sound_rabbit_mq.rpc_client',
             'old_sound_rabbit_mq.rpc_server',
-        );
-
-        foreach ($tags as $tag) {
-            foreach ($container->findTaggedServiceIds($tag) as $id => $attributes) {
-                $definition->addMethodCall('addPart', array($tag, new Reference($id)));
-            }
-        }
+        ];
     }
 }

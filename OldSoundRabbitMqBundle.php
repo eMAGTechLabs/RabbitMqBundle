@@ -14,7 +14,6 @@ class OldSoundRabbitMqBundle extends Bundle
         parent::build($container);
 
         $container->addCompilerPass(new RegisterPartsPass());
-        $container->addCompilerPass(new InjectEventDispatcherPass());
     }
 
     /**
@@ -23,14 +22,12 @@ class OldSoundRabbitMqBundle extends Bundle
     public function shutdown()
     {
         parent::shutdown();
-        if (!$this->container->hasParameter('old_sound_rabbit_mq.base_amqp')) {
-            return;
-        }
-        $connections = $this->container->getParameter('old_sound_rabbit_mq.base_amqp');
+
+        /* TODO $connections = $this->container->getParameter('old_sound_rabbit_mq.connection');
         foreach ($connections as $connection) {
             if ($this->container->initialized($connection)) {
                 $this->container->get($connection)->close();
             }
-        }
+        }*/
     }
 }
