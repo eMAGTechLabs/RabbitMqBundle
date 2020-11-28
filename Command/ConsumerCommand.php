@@ -6,7 +6,10 @@ use OldSound\RabbitMqBundle\Consumer\ConsumersRegistry;
 use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
 use OldSound\RabbitMqBundle\Declarations\Declarator;
 use OldSound\RabbitMqBundle\Event\AfterProcessingMessageEvent;
+use OldSound\RabbitMqBundle\Event\AfterProcessingMessagesEvent;
+use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\EventListener\MemoryLimitListener;
+use OldSound\RabbitMqBundle\EventListener\PcntlSignalDispatchSubscriber;
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use Symfony\Component\Console\Command\Command;
@@ -67,7 +70,7 @@ class ConsumerCommand extends Command
             $input->getOption('memory-limit') > 0
         ) {
             $consumer->getEventDispatcher()->addListener(
-                AfterProcessingMessageEvent::NAME,
+                AfterProcessingMessagesEvent::NAME,
                 new MemoryLimitListener($input->getOption('memory-limit'))
             );
         }
@@ -80,10 +83,13 @@ class ConsumerCommand extends Command
             if (!function_exists('pcntl_signal')) {
                 throw new \BadFunctionCallException("Function 'pcntl_signal' is referenced in the php.ini 'disable_functions' and can't be called.");
             }
-            $this->initPcntlSignals($consumer);
+            if (!function_exists('pcntl_signal_dispatch')) {
+                throw new \BadFunctionCallException("Function 'pcntl_signal_dispatch' is referenced in the php.ini 'disable_functions' and can't be called.");
+            }
+            $consumer->getEventDispatcher()->addSubscriber(new PcntlSignalDispatchSubscriber($consumer));
         }
 
-        if (defined('AMQP_DEBUG') === false) {
+        if (defined('AMQP_DEBUG') === false) { // TODO remove?!
             define('AMQP_DEBUG', (bool) $input->getOption('debug'));
         }
 
@@ -110,37 +116,5 @@ class ConsumerCommand extends Command
         foreach($consumer->getQueueConsumings() as $queueConsuming) {
             $declarator->declareForQueueDeclaration($queueConsuming->queueName, $declarationRegistry);
         }
-    }
-    
-    private function initPcntlSignals(Consumer $consumer)
-    {
-        if (!function_exists('pcntl_signal_dispatch')) {
-            throw new \BadFunctionCallException("Function 'pcntl_signal_dispatch' is referenced in the php.ini 'disable_functions' and can't be called.");
-        }
-
-        $consumer->enablePcntlSignals();
-
-        $stopConsumer = function () use ($consumer) {
-            if ($consumer instanceof Consumer) {
-                return;
-            }
-            // Process current message, then halt consumer
-            $consumer->forceStopConsumer();
-
-            // Halt consumer if waiting for a new message from the queue
-            try {
-                $consumer->stopConsuming();
-            } catch (AMQPTimeoutException $e) {}
-        };
-        $restartConsumer = function () use($consumer) {
-            if ($consumer instanceof Consumer) {
-                return;
-            }
-            // TODO $consumer->restart();
-        };
-
-        pcntl_signal(SIGTERM, $stopConsumer);
-        pcntl_signal(SIGINT, $stopConsumer);
-        pcntl_signal(SIGHUP, $restartConsumer);
     }
 }

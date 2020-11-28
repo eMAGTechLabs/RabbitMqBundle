@@ -5,6 +5,7 @@ namespace OldSound\RabbitMqBundle\RabbitMq;
 use http\Exception\InvalidArgumentException;
 use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
 use OldSound\RabbitMqBundle\Event\AfterProcessingMessageEvent;
+use OldSound\RabbitMqBundle\Event\AfterProcessingMessagesEvent;
 use OldSound\RabbitMqBundle\Event\AMQPEvent;
 use OldSound\RabbitMqBundle\Event\BeforeProcessingMessageEvent;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
@@ -47,8 +48,6 @@ class Consumer
         'content_type' => 'text/plain',
         'delivery_mode' => 2
     ];
-    /** @var bool */
-    protected $enabledPcntlSignals = false;
     /** @var int|null */
     protected $target;
     /** @var int */
@@ -142,12 +141,11 @@ class Consumer
                             $logContent['return_code'] = $replay;
                         }
                         $this->logger->info('Queue message processed', ['amqp' => $logContent]);
-
-                        $this->dispatchEvent(
-                            AfterProcessingMessageEvent::NAME,
-                            new AfterProcessingMessageEvent($this, $message)
-                        );
                     }
+                    $this->dispatchEvent(
+                        AfterProcessingMessagesEvent::NAME,
+                        new AfterProcessingMessagesEvent($this, $messages)
+                    );
                 } catch (Exception\StopConsumerException $e) {
                     $this->logger->info('Consumer requested stop', [
                         'amqp' => $logAmqpContext,
@@ -389,18 +387,9 @@ class Consumer
 
     protected function maybeStopConsumer()
     {
-        if ($this->enabledPcntlSignals) {
-            pcntl_signal_dispatch();
-        }
-
         if ($this->forceStop || ($this->target && $this->consumed == $this->target)) {
             $this->stopConsuming();
         }
-    }
-
-    public function enablePcntlSignals()
-    {
-        $this->enabledPcntlSignals = true;
     }
 
     public function forceStopConsumer()
