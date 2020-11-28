@@ -2,6 +2,7 @@
 
 namespace OldSound\RabbitMqBundle\RabbitMq;
 
+use OldSound\RabbitMqBundle\RabbitMq\Exception\RpcResponseException;
 use PhpAmqpLib\Message\AMQPMessage;
 
 interface ConsumerInterface
@@ -33,7 +34,8 @@ interface ConsumerInterface
 
     /**
      * @param AMQPMessage $message
-     * @return mixed false to reject and requeue, any other value to acknowledge
+     * @return int|true|false|RpcReponse false to reject and requeue, any other value to acknowledge
+     * @throws RpcResponseException
      */
     public function execute(AMQPMessage $message);
 }

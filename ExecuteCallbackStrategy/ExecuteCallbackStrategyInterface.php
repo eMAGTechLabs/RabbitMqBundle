@@ -8,7 +8,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 interface ExecuteCallbackStrategyInterface
 {
-    public function setProccessMessagesFn(callable $proccessMessagesFn);
+    public function setMessagesProccessor(MessagesProcessorInterface $messagesProcessor);
 
     public function canPrecessMultiMessages(): bool;
 

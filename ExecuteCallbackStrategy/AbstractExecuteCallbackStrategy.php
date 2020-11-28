@@ -6,12 +6,12 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 abstract class AbstractExecuteCallbackStrategy implements ExecuteCallbackStrategyInterface
 {
-    /** @var callable */
-    private $proccessMessagesFn;
+    /** @var MessagesProcessorInterface */
+    private $messagesProcessor;
 
-    public function setProccessMessagesFn(callable $proccessMessagesFn)
+    public function setMessagesProccessor(MessagesProcessorInterface $messagesProcessor)
     {
-        $this->proccessMessagesFn  = $proccessMessagesFn;
+        $this->messagesProcessor = $messagesProcessor;
     }
 
     /**
@@ -19,6 +19,6 @@ abstract class AbstractExecuteCallbackStrategy implements ExecuteCallbackStrateg
      */
     protected function proccessMessages(array $messages)
     {
-        call_user_func($this->proccessMessagesFn, $messages);
+        $this->messagesProcessor->processMessages($messages);
     }
 }

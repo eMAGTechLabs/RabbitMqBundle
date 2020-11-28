@@ -7,6 +7,7 @@ use OldSound\RabbitMqBundle\Declarations\Declarator;
 use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
 use OldSound\RabbitMqBundle\Declarations\QueueDeclaration;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy;
+use OldSound\RabbitMqBundle\RabbitMq\Exception\RpcResponseException;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -119,11 +120,20 @@ class RpcClient
 
         $replices = [];
         foreach($consuming->callback->messages as $message) {
+            /** @var AMQPMessage $message */
             if (null === $message->get('correlation_id')) {
                 $this->logger->error('unexpected message. rpc replies have no correlation_id ');
                 continue;
             }
-            $replices[$message->get('correlation_id')] = $this->serializer->deserialize($message->body, $type, 'json');
+
+            $v = (array) json_decode($message->body, true);
+            if (isset($v['error_code'])) {
+                $reply = new RpcResponseException($v['message'], $v['error_code']);
+            } else {
+                $reply = $this->serializer->deserialize($message->body, $type, 'json');
+            }
+
+            $replices[$message->get('correlation_id')] = $reply;
         }
         ksort($replices);
         return $replices;

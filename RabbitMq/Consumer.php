@@ -10,8 +10,11 @@ use OldSound\RabbitMqBundle\Event\BeforeProcessingMessageEvent;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\Event\OnIdleEvent;
 use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
+use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\FnMessagesProcessor;
+use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\MessagesProcessorInterface;
 use OldSound\RabbitMqBundle\MemoryChecker\MemoryConsumptionChecker;
 use OldSound\RabbitMqBundle\MemoryChecker\NativeMemoryUsageProvider;
+use OldSound\RabbitMqBundle\RabbitMq\Exception\RpcResponseException;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
@@ -123,9 +126,9 @@ class Consumer
     public function consumeQueue(QueueConsuming $queueConsuming, ExecuteCallbackStrategyInterface $executeCallbackStrategy): Consumer
     {
         $this->queueConsumings[] = $queueConsuming;
-        $executeCallbackStrategy->setProccessMessagesFn(function (array $messages) use ($queueConsuming) {
-            $this->processMessages($messages, $queueConsuming);
-        });
+        $executeCallbackStrategy->setMessagesProccessor(new FnMessagesProcessor(
+            fn (array $messages) => $this->processMessages($messages, $queueConsuming)
+        ));
 
         $canPrecessMultiMessages = $executeCallbackStrategy->canPrecessMultiMessages();
         if ($canPrecessMultiMessages) {
@@ -253,7 +256,11 @@ class Consumer
             if ($queueConsuming->callback instanceof BatchConsumerInterface) {
                 $processFlags = $queueConsuming->callback->batchExecute($messages);
             } else {
-                $processFlags = $queueConsuming->callback->execute($messages[0]);
+                try {
+                    $processFlags = $queueConsuming->callback->execute($messages[0]);
+                } catch (Exception\RpcResponseException $e) {
+                    $processFlags = $e;
+                }
             }
 
             if (!$queueConsuming->noAck) {
@@ -300,7 +307,7 @@ class Consumer
 
     /**
      * @param AMQPMessage[] $messages
-     * @param array|int $processFlags
+     * @param array|int|RpcResponseException $processFlags
      */
     private function handleProcessMessages($messages, $processFlags, QueueConsuming $queueConsuming): array
     {
@@ -373,11 +380,20 @@ class Consumer
     {
         $isRpcCall = $message->has('reply_to') && $message->has('correlation_id');
         if ($isRpcCall) {
-            if ($result instanceof RpcResponseInterface) {
+            $body = null;
+            if ($result instanceof RpcReponse) {
                 $body = $this->serializer->serialize($result, 'json');
+            } else if ($result instanceof RpcResponseException) {
+                $body = $this->serializer->serialize([
+                    'error_code' => $result->getCode(),
+                    'message' => $result->getMessage(),
+                ], 'json');
+            }
+
+            if ($body) {
                 $replayMessage = new AMQPMessage($body, [
                     'content_type' => 'text/plain',
-                    'correlation_id' => $message->get('correlation_id')
+                    'correlation_id' => $message->get('correlation_id'),
                 ]);
                 $message->getChannel()->basic_publish($replayMessage , '', $message->get('reply_to'));
             } else {

@@ -218,6 +218,7 @@ class OldSoundRabbitMqExtension extends Extension
     protected function loadProducers()
     {
         if ($this->config['sandbox'] == false) {
+            $defaultAutoDeclare = $this->container->getParameter('kernel.environment') !== 'prod';
             foreach ($this->config['producers'] as $key => $producer) {
                 $definition = new Definition($producer['class']);
                 $definition->setPublic(true);
@@ -245,6 +246,9 @@ class OldSoundRabbitMqExtension extends Extension
                 //    $definition->addMethodCall('disableAutoSetupFabric');
                 //}
 
+                if (isset($producer['auto_declare'])) {
+                    $definition->setProperty('autoDeclare', $producer['auto_declare'] ?? $defaultAutoDeclare);
+                }
                 if ($producer['enable_logger']) {
                     $this->injectLogger($definition);
                 }
@@ -340,9 +344,6 @@ class OldSoundRabbitMqExtension extends Extension
                     'setGracefulMaxExecutionTimeoutExitCode',
                     array($consumer['graceful_max_execution']['exit_code'])
                 );
-            }
-            if (!$consumer['auto_setup_fabric']) {
-                $definition->addMethodCall('disableAutoSetupFabric');
             }
 
             $this->injectConnection($definition, $consumer['connection']);

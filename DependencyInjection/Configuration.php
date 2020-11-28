@@ -5,6 +5,7 @@ namespace OldSound\RabbitMqBundle\DependencyInjection;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
+use Symfony\Component\ExpressionLanguage\Expression;
 
 /**
  * Configuration
@@ -178,7 +179,7 @@ class Configuration implements ConfigurationInterface
                         ->children()
                             ->scalarNode('connection')->defaultValue('default')->end()
                             ->scalarNode('exchange')->defaultValue('')->end()
-                            //->scalarNode('auto_setup_fabric')->defaultTrue()->end()
+                            ->scalarNode('auto_declare')->defaultValue('%kernel.debug%')->end()
                             ->scalarNode('class')->defaultValue('%old_sound_rabbit_mq.producer.class%')->end()
                             ->scalarNode('enable_logger')->defaultFalse()->end()
                             ->scalarNode('service_alias')->defaultValue(null)->end()
