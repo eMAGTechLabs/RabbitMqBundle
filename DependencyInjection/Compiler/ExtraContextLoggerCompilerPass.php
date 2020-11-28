@@ -21,7 +21,7 @@ class ExtraContextLoggerCompilerPass implements CompilerPassInterface
         $taggedConsumers = $container->findTaggedServiceIds('old_sound_rabbit_mq.consumer');
 
         foreach ($taggedProducers as $id => $tags) {
-            $producerName = $tags[0]['name'];
+            $producerName = $tags[0]['producer'];
             $originLogger = $id . '.logger';
 
             if ($container->hasDefinition($originLogger)) {
@@ -33,7 +33,7 @@ class ExtraContextLoggerCompilerPass implements CompilerPassInterface
         }
 
         foreach ($taggedConsumers as $id => $tags) {
-            $consumerName = $tags[0]['name'];
+            $consumerName = $tags[0]['consumer'];
             $originLogger = $id . '.logger';
 
             if ($container->hasDefinition($originLogger)) {

@@ -13,7 +13,7 @@ class ConsumersListCompilerPass implements CompilerPassInterface
     public function process(ContainerBuilder $container)
     {
         $taggedConsumers = $container->findTaggedServiceIds('old_sound_rabbit_mq.consumer');
-        $consumerNames = array_map(fn ($tags) => $tags[0]['name'], $taggedConsumers);
+        $consumerNames = array_map(fn ($tags) => $tags[0]['consumer'], $taggedConsumers);
         $container->setParameter('old_sound_rabbit_mq.allowed_consumer_names', $consumerNames);
     }
 }

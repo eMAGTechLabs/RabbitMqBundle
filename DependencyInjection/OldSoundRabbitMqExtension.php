@@ -136,14 +136,16 @@ class OldSoundRabbitMqExtension extends Extension
 
     protected function createBindingDef($binding, string $exchange = null, string $destination = null, bool $destinationIsExchange = null): Definition
     {
-        $routingKeys = $binding['routing_keys'] ?? [$binding['routing_key']];
-
+        $routingKeys = $binding['routing_keys'];
+        if (isset($binding['routing_key'])) {
+            $routingKeys[] = $binding['routing_key'];
+        }
         $definition = new Definition(BindingDeclaration::class);
         $definition->setProperties([
             'exchange' => $exchange ? $exchange : $binding['exchange'],
             'destinationIsExchange' => isset($destinationIsExchange) ? $destinationIsExchange : $binding['destination_is_exchange'],
             'destination' => $destination ? $destination : $binding['destination'],
-            'routingKeys' => $routingKeys,
+            'routingKeys' => array_unique($routingKeys),
             // TODO 'arguments' => $binding['arguments'],
             //'nowait' => $binding['nowait'],
         ]);
@@ -214,7 +216,7 @@ class OldSoundRabbitMqExtension extends Extension
 
             $definition = new Definition($producer['class']);
             $definition->setPublic(true);
-            $definition->addTag('old_sound_rabbit_mq.producer', ['name' => $producerName]);
+            $definition->addTag('old_sound_rabbit_mq.producer', ['producer' => $producerName]);
             //this producer doesn't define an exchange -> using AMQP Default
             if (!isset($producer['exchange_options'])) {
                 $producer['exchange_options'] = $this->getDefaultExchangeOptions();
@@ -251,20 +253,17 @@ class OldSoundRabbitMqExtension extends Extension
 
     protected function loadConsumers()
     {
-        $simpleExecuteCallbackStrategyAlias = 'old_sound_rabbit_mq.execute_callback_strategy.simple';
-        $this->container->setDefinition($simpleExecuteCallbackStrategyAlias, new Definition(SimpleExecuteCallbackStrategy::class));
-
         foreach ($this->config['consumers'] as $consumerName => $consumer) {
             $alias = sprintf('old_sound_rabbit_mq.consumer.%s', $consumerName);
             $serializerAlias = sprintf('old_sound_rabbit_mq.consumer.%s.serializer', $consumerName);// TODO
 
-            $connectionName = isset($consumer['connection']) ? $consumer['connection'] : 'default';
+            $connectionName = $consumer['connection'] ?? 'default';
 
             $definition = new Definition('%old_sound_rabbit_mq.consumer.class%', [
                 $this->createChannelReference($connectionName)
             ]);
             $definition->setPublic(true);
-            $definition->addTag('old_sound_rabbit_mq.consumer', ['name' => $consumerName]);
+            $definition->addTag('old_sound_rabbit_mq.consumer', ['consumer' => $consumerName]);
             // TODO $this->container->setAlias($serializerAlias, SerializerInterface::class);
             // $definition->addMethodCall('setSerializer', [new Reference($serializerAlias)]);}
             foreach($consumer['consumeQueues'] as $index => $consumeQueue) {
@@ -274,18 +273,14 @@ class OldSoundRabbitMqExtension extends Extension
                     'callback' => new Reference($consumeQueue['callback']),
                     //'qosPrefetchSize' => $consumeQueue['qos_prefetch_size'],
                     'qosPrefetchCount' => $consumeQueue['qos_prefetch_count'],
+                    'batchCount' => $consumeQueue['batch_count'] ?? null,
                     //'consumerTag' => $consumeQueue['consumer_tag'],
                     //'noLocal' => $consumeQueue['no_local'],
                 ]);
 
-                $executeCallbackStrategyRef = isset($consumeQueue['batch_count']) ?
-                    new Definition(BatchExecuteCallbackStrategy::class, [$consumeQueue['batch_count']]) :
-                    new Reference($simpleExecuteCallbackStrategyAlias);
-
-                $definition->addMethodCall('consumeQueue', [
-                    $queueConsumingDef,
-                    $executeCallbackStrategyRef
-                ]);
+                $queueConsumingDef->addTag(sprintf('old_sound_rabbit_mq.%s.queue_consuming', $connectionName));
+                $this->container->setDefinition(sprintf('old_sound_rabbit_mq.%s.queue_consuming.%s', $connectionName, $consumerName), $queueConsumingDef);
+                $definition->addMethodCall('consumeQueue', [$queueConsumingDef]);
             }
 
             $definition->addMethodCall('setEventDispatcher', [

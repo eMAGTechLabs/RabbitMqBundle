@@ -87,12 +87,30 @@ class Declarator
                         $binding->arguments
                     );
                 }
+                if ([] === $binding->routingKeys) {
+                    $this->channel->queue_bind(
+                        $binding->destination,
+                        $binding->exchange,
+                        '',
+                        $binding->nowait,
+                        $binding->arguments
+                    );
+                }
             } else {
                 foreach ($binding->routingKeys as $routingKey) {
                     $this->channel->queue_bind(
                         $binding->destination,
                         $binding->exchange,
                         $routingKey,
+                        $binding->nowait,
+                        $binding->arguments
+                    );
+                }
+                if ([] === $binding->routingKeys) {
+                    $this->channel->queue_bind(
+                        $binding->destination,
+                        $binding->exchange,
+                        '',
                         $binding->nowait,
                         $binding->arguments
                     );

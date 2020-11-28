@@ -215,7 +215,7 @@ by default to avoid possible breaks in applications already using this bundle.
 
 It's a good idea to set the ```read_write_timeout``` to 2x the heartbeat so your socket will be open. If you don't do this, or use a different multiplier, there's a risk the __consumer__ socket will timeout.
 
-### Dynamic Connection Parameters ###
+### Dynamic Connection ###
 
 Sometimes your connection information may need to be dynamic. Dynamic connection parameters allow you to supply or
 override parameters programmatically through a service.
@@ -330,6 +330,35 @@ For deleting the consumer's queue, use this command:
 $ ./app/console rabbitmq:delete --no-confirmation upload_picture
 ```
 
+#### Dynimic consumer ####
+
+Example dynimic consumer with multiple `consumeQueues` combined from all consumers with `crm` connection for reduce complexity and simplify debugging.
+A lot of running php commands can consume significant memory size and would be not convinient in development and testing environment which no need parallel executation.
+
+You can define consumer by `services.yml`.
+
+```shell
+services:
+  old_sound_rabbit_mq.consumer.crm_all: # would be available from rabbitmq:consumer crm_all
+    public: true
+    class: OldSound\RabbitMqBundle\RabbitMq\Consumer
+    arguments: ["@old_sound_rabbit_mq.channel.crm"] # inject crm connection channel
+    tags:
+      - { name: 'old_sound_rabbit_mq.consumer', consumer: 'crm_all' }
+    calls:
+      - { method: 'consumeQueues', arguments: [!tagged_iterator 'old_sound_rabbit_mq.crm.queue_consuming'] } # inject all crm consumeQueues items
+```
+
+Execute all `crm` connection `consumerQueues` together. Inludes `rpc_sum` and `hight_priority_orders`
+```bash
+$ ./app/console rabbitmq:consumer crm_all -vvv
+```
+
+```bash
+echo "{\"a\": 39, \"b\": 5}" | bin/console rabbitmq:stdin-producer direct -f raw -r rpc_sum
+echo "Order #4" | bin/console rabbitmq:stdin-producer orders -f raw -r high
+```
+
 #### Consumer Events ####
 
 See `\OldSound\RabbitMqBundle\Event\...` events
@@ -340,7 +369,7 @@ Event raised before processing a AMQPMessages.
 
 #TODO
 
-Reset resettable services from container after processing a AMQPMessages.
+Reset resettable services from container after processing a AMQPMessages for avoid memory leak.
 
 ```yaml
 services:

@@ -12,8 +12,10 @@ use OldSound\RabbitMqBundle\Event\BeforeProcessingMessagesEvent;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\Event\OnIdleEvent;
 use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
+use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\FnMessagesProcessor;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\MessagesProcessorInterface;
+use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\SimpleExecuteCallbackStrategy;
 use OldSound\RabbitMqBundle\MemoryChecker\MemoryConsumptionChecker;
 use OldSound\RabbitMqBundle\MemoryChecker\NativeMemoryUsageProvider;
 use OldSound\RabbitMqBundle\RabbitMq\Exception\RpcResponseException;
@@ -118,9 +120,25 @@ class Consumer
         return $this;
     }
 
-    public function consumeQueue(QueueConsuming $queueConsuming, ExecuteCallbackStrategyInterface $executeCallbackStrategy): Consumer
+    /**
+     * @param iterable|QueueConsuming[] $queueConsumings
+     */
+    public function consumeQueues(iterable $queueConsumings)
+    {
+        foreach ($queueConsumings as $queueConsuming) {
+            $this->consumeQueue($queueConsuming);
+        }
+    }
+
+    public function consumeQueue(QueueConsuming $queueConsuming, ExecuteCallbackStrategyInterface $executeCallbackStrategy = null): Consumer
     {
         $this->queueConsumings[] = $queueConsuming;
+        if (null === $executeCallbackStrategy) {
+            $executeCallbackStrategy = null === $queueConsuming->batchCount ?
+                new SimpleExecuteCallbackStrategy() :
+                new BatchExecuteCallbackStrategy($queueConsuming->batchCount);
+        }
+
         $executeCallbackStrategy->setMessagesProccessor(new FnMessagesProcessor(
             (function (array $messages) use ($queueConsuming) {
                 $logAmqpContext = ['queue' => $queueConsuming->queueName];

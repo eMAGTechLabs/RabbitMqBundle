@@ -27,4 +27,6 @@ class QueueConsuming
     public $qosPrefetchCount = 0;
     /** @var int */
     public $qosPrefetchSize = 0;
+    /** @var int|null */
+    public $batchCount;
 }
