@@ -2,6 +2,8 @@
 
 namespace OldSound\RabbitMqBundle\RabbitMq\Exception;
 use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
+use PhpAmqpLib\Message\AMQPMessage;
+use Throwable;
 
 /**
  * If this exception is thrown in consumer service the message
@@ -12,10 +14,18 @@ use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
  */
 class StopConsumerException extends \RuntimeException
 {
-    public function getHandleCode()
+    /** @var int */
+    private $handleCode;
+
+    public function __construct(int $handleCode = ConsumerInterface::MSG_SINGLE_NACK_REQUEUE, $message = "", $code = 0, Throwable $previous = null)
     {
-        return ConsumerInterface::MSG_SINGLE_NACK_REQUEUE;
+        parent::__construct($message, $code, $previous);
+        $this->handleCode = $handleCode;
     }
 
+    public function getHandleCode(): int
+    {
+        return $this->handleCode;
+    }
 }
 

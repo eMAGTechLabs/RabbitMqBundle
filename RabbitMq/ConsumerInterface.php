@@ -35,6 +35,7 @@ interface ConsumerInterface
     /**
      * @param AMQPMessage $message
      * @return int|true|false|RpcReponse false to reject and requeue, any other value to acknowledge
+     * @throws StopConsumerException
      * @throws RpcResponseException
      */
     public function execute(AMQPMessage $message);

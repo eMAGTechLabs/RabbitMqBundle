@@ -21,7 +21,7 @@ class MemoryLimitListener
     public function __invoke(Consumer $consumer)
     {
         if (!is_null($this->getMemoryLimit()) && $this->isRamAlmostOverloaded()) {
-            $consumer->stopConsuming();
+            $consumer->stopConsuming(true);
         }
     }
 

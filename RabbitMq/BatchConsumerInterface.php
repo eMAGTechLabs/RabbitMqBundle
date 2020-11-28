@@ -9,6 +9,7 @@ interface BatchConsumerInterface
     /**
      * @param AMQPMessage[] $messages
      * @return array|int
+     * @throws StopConsumerException
      */
     public function batchExecute(array $messages);
 }

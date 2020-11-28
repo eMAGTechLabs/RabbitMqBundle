@@ -118,11 +118,53 @@ class Consumer
         return $this;
     }
 
+
+
     public function consumeQueue(QueueConsuming $queueConsuming, ExecuteCallbackStrategyInterface $executeCallbackStrategy): Consumer
     {
         $this->queueConsumings[] = $queueConsuming;
         $executeCallbackStrategy->setMessagesProccessor(new FnMessagesProcessor(
-            fn (array $messages) => $this->processMessages($messages, $queueConsuming)
+            (function (array $messages) use ($queueConsuming) {
+                $logAmqpContext = ['queue' => $queueConsuming->queueName];
+                if ($this->getExecuteCallbackStrategy($queueConsuming)->canPrecessMultiMessages()) {
+                    $logAmqpContext['messages'] = $messages;
+                } else {
+                    $logAmqpContext['message'] = $messages[0];
+                }
+
+                try {
+                    $replies = $this->processMessages($messages, $queueConsuming);
+
+                    foreach ($messages as $message) {
+                        $logContent = $logAmqpContext;
+                        $replay = $replies[$message->getDeliveryTag()];
+                        if (!$queueConsuming->noAck && is_int($replay)) {
+                            $logContent['return_code'] = $replay;
+                        }
+                        $this->logger->info('Queue message processed', ['amqp' => $logContent]);
+
+                        $this->dispatchEvent(
+                            AfterProcessingMessageEvent::NAME,
+                            new AfterProcessingMessageEvent($this, $message)
+                        );
+                    }
+                } catch (Exception\StopConsumerException $e) {
+                    $this->logger->info('Consumer requested stop', [
+                        'amqp' => $logAmqpContext,
+                        'exception' => $e
+                    ]);
+
+                    $this->stopConsuming(true);
+                    return;
+                } catch (\Throwable $e) {
+                    $this->logger->error('Throw exception while process messages', [
+                        'amqp' => $logAmqpContext,
+                        'exception' => $e
+                    ]);
+                    throw $e;
+                }
+                $this->maybeStopConsumer();
+            })->bindTo($this)
         ));
 
         $canPrecessMultiMessages = $executeCallbackStrategy->canPrecessMultiMessages();
@@ -239,85 +281,54 @@ class Consumer
             );
         }
 
-        $logAmqpContext = [
-            'queue' => $queueConsuming->queueName
-        ];
-        if ($canPrecessMultiMessages) {
-            $logAmqpContext['messages'] = $messages;
+        /** @var int[]|RpcReponse[]|RpcResponseException[]|bool[] $replies */
+        $replies = [];
+        if ($queueConsuming->callback instanceof BatchConsumerInterface) {
+            $replies = $queueConsuming->callback->batchExecute($messages);
+            if (!is_array($replies)) {
+                $processFlag = $replies;
+                $replies = [];
+                foreach ($messages as $message) {
+                    $replies[$message->getDeliveryTag()] = $processFlag;
+                }
+            } else if (count($replies) !== count($messages)) {
+                throw new AMQPRuntimeException(
+                    'Method batchExecute() should return an array with elements equal with the number of messages processed'
+                );
+            }
         } else {
-            $logAmqpContext['message'] = $messages[0];
+            try {
+                $replies = [$message->getDeliveryTag() => $queueConsuming->callback->execute($messages[0])];
+            } catch (Exception\RpcResponseException $e) {
+                $replies = [$message->getDeliveryTag() => $e];
+            }
         }
 
-        try {
-            $processFlags = null;
-            if ($queueConsuming->callback instanceof BatchConsumerInterface) {
-                $processFlags = $queueConsuming->callback->batchExecute($messages);
-            } else {
-                try {
-                    $processFlags = $queueConsuming->callback->execute($messages[0]);
-                } catch (Exception\RpcResponseException $e) {
-                    $processFlags = $e;
-                }
-            }
+        if (!$queueConsuming->noAck) {
+            $messages = array_combine(
+                array_map(fn ($message) => $message->getDeliveryTag(), $messages),
+                $messages
+            );
 
-            if (!$queueConsuming->noAck) {
-                $messages = array_combine(
-                    array_map(function ($message) {
-                        return $message->getDeliveryTag();
-                    }, $messages),
-                    $messages
-                );
-
-                $processFlags = $this->handleProcessMessages($messages, $processFlags, $queueConsuming);
-            }
-
-            foreach ($messages as $message) {
-                $logContent = $logAmqpContext;
-                $flag = $processFlags[$message->getDeliveryTag()];
-                if (!$queueConsuming->noAck && is_int($flag)) {
-                    $logContent['return_code'] = $flag;
-                }
-                $this->logger->info('Queue message processed', ['amqp' => $logContent]);
-
-                $this->dispatchEvent(
-                    AfterProcessingMessageEvent::NAME,
-                    new AfterProcessingMessageEvent($this, $message)
-                );
-            }
-
-            $this->maybeStopConsumer();
-        } catch (Exception\StopConsumerException $e) {
-            $this->logger->info('Consumer requested restart', [
-                'amqp' => $logAmqpContext + ['stacktrace' => $e->getTraceAsString()]
-            ]);
-            if (!$queueConsuming->noAck) {
-                $this->handleProcessMessage($msg, $e->getHandleCode());
-            }
-            $this->stopConsuming();
-        } catch (\Throwable $e) {
-            $this->logger->error('Throw exception while process messages', [
-                'amqp' => $logAmqpContext,
-                'exception' => $e
-            ]);
-            throw $e;
+            $this->handleProcessMessages($messages, $replies, $queueConsuming);
         }
+
+        return $replies;
     }
 
 
     /**
      * @param AMQPMessage[] $messages
-     * @param array|int|RpcResponseException $processFlags
+     * @param int[]|RpcReponse[]|RpcResponseException[]|bool[] $replies
      */
-    private function handleProcessMessages($messages, $processFlags, QueueConsuming $queueConsuming): array
+    private function handleProcessMessages($messages, array $replies, QueueConsuming $queueConsuming)
     {
         $executeCallbackStrategy = $this->getExecuteCallbackStrategy($queueConsuming);
 
-        if ($this->multiAck && count($messages) > 1 && $processFlags === ConsumerInterface::MSG_ACK) {
-            // all messages have same channel
-            $channels = array_map(function ($message) {
-                return $message->getChannel();
-            }, $messages);
-            if (count($channels) !== array_unique($channels)) {
+        $ack = !array_search(fn ($reply) => $reply !== null && $reply !== ConsumerInterface::MSG_ACK, $replies, true);
+        if ($this->multiAck && count($messages) > 1 && $ack) {
+            $channels = array_map(fn ($message) => $message->getChannel(), $messages);
+            if (count($channels) !== array_unique($channels)) { // all messages have same channel
                 throw new InvalidArgumentException('Messages can not be processed as multi ack with different channels');
             }
 
@@ -326,33 +337,18 @@ class Consumer
             $executeCallbackStrategy->onMessageProcessed($message);
 
             return array_combine(
-                array_map(function ($message) {
-                    return $message->getDeliveryTag();
-                }, $messages),
+                array_map(fn ($message) => $message->getDeliveryTag(), $messages),
                 array_fill(0, count($messages), ConsumerInterface::MSG_ACK)
             );
         } else {
-            if (is_array($processFlags)) {
-                if (count($processFlags) !== count($messages)) {
-                    throw new AMQPRuntimeException(
-                        'Method batchExecute() should return an array with elements equal with the number of messages processed'
-                    );
-                }
-            } else {
-                $processFlag = $processFlags;
-                $processFlags = [];
-                foreach ($messages as $message) {
-                    $processFlags[$message->getDeliveryTag()] = $processFlag;
-                }
-            }
-
-            foreach ($processFlags as $deliveryTag => $processFlag) {
-                $message = isset($messages[$deliveryTag]) ? $messages[$deliveryTag] : null;
+            foreach ($replies as $deliveryTag => $reply) {
+                $message = $messages[$deliveryTag] ?? null;
                 if (null === $message) {
                     throw new AMQPRuntimeException(sprintf('Unknown delivery_tag %d!', $deliveryTag));
                 }
 
                 $channel = $message->getChannel();
+                $processFlag = $reply;
                 if ($processFlag === ConsumerInterface::MSG_REJECT_REQUEUE || false === $processFlag) {
                     $channel->basic_reject($deliveryTag, true); // Reject and requeue message to RabbitMQ
                 } else if ($processFlag === ConsumerInterface::MSG_SINGLE_NACK_REQUEUE) {
@@ -362,36 +358,32 @@ class Consumer
                 } else if ($processFlag !== ConsumerInterface::MSG_ACK_SENT) {
                     $channel->basic_ack($deliveryTag); // Remove message from queue only if callback return not false
 
-                    $message = $messages[$deliveryTag];
-                    $this->onAsk($message, $processFlag);
+                    $isRpcCall = $message->has('reply_to') && $message->has('correlation_id');
+                    if ($isRpcCall) {
+                        $this->sendRpcReply($message, $reply);
+                    }
                 }
 
                 $this->consumed++;
 
                 $executeCallbackStrategy->onMessageProcessed($message);
             }
-
-            return $processFlags;
         }
     }
 
-    protected function onAsk(AMQPMessage $message, $result)
+    protected function sendRpcReply(AMQPMessage $message, $result)
     {
-        $isRpcCall = $message->has('reply_to') && $message->has('correlation_id');
-        if ($isRpcCall) {
-
-            if ($result instanceof RpcReponse || $result instanceof RpcResponseException) {
-                $body = $this->serializer->serialize($result);
-                $replayMessage = new AMQPMessage($body, [
-                    'content_type' => 'text/plain',
-                    'correlation_id' => $message->get('correlation_id'),
-                ]);
-                $message->getChannel()->basic_publish($replayMessage , '', $message->get('reply_to'));
-            } else {
-                $this->logger->error('Rpc call send msg to queue which have not rpc reponse', [
-                    'amqp' => ['message' => $message]
-                ]);
-            }
+        if ($result instanceof RpcReponse || $result instanceof RpcResponseException) {
+            $body = $this->serializer->serialize($result);
+            $replayMessage = new AMQPMessage($body, [
+                'content_type' => 'text/plain',
+                'correlation_id' => $message->get('correlation_id'),
+            ]);
+            $message->getChannel()->basic_publish($replayMessage , '', $message->get('reply_to'));
+        } else {
+            $this->logger->error('Rpc call send msg to queue which have not rpc reponse', [
+                'amqp' => ['message' => $message]
+            ]);
         }
     }
 
@@ -416,16 +408,19 @@ class Consumer
         $this->forceStop = true;
     }
 
-    public function stopConsuming()
+    public function stopConsuming($immedietly = false)
     {
+        if (false === $immedietly) {
+            foreach ($this->executeCallbackStrategies as $executeCallbackStrategy) {
+                $executeCallbackStrategy->onStopConsuming();
+            }
+        }
+
         foreach ($this->consumerTags as $consumerTag) {
             $this->channel->basic_cancel($consumerTag, false, true);
         }
-        $this->consumerTags = [];
 
-        foreach ($this->executeCallbackStrategies as $executeCallbackStrategy) {
-            $executeCallbackStrategy->onStopConsuming();
-        }
+        $this->consumerTags = [];
     }
 
     /**

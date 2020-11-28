@@ -8,6 +8,8 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 class SimpleExecuteCallbackStrategy extends AbstractExecuteCallbackStrategy
 {
+    /** @var AMQPMessage */
+    private $processingMessage;
     public function canPrecessMultiMessages(): bool
     {
         return false;
@@ -15,11 +17,16 @@ class SimpleExecuteCallbackStrategy extends AbstractExecuteCallbackStrategy
 
     public function consumeCallback(AMQPMessage $message)
     {
-        $this->proccessMessages([$message]);
+        $this->processingMessage = $message;
+        $this->proccessMessages([$this->processingMessage]);
     }
 
     public function onMessageProcessed(AMQPMessage $message)
     {
+        if ($this->processingMessage !== $message) {
+            throw new \InvalidArgumentException('TODO');
+        }
+        $this->processingMessage = null;
     }
 
     public function onCatchTimeout(AMQPTimeoutException $e)
@@ -28,5 +35,8 @@ class SimpleExecuteCallbackStrategy extends AbstractExecuteCallbackStrategy
 
     public function onStopConsuming()
     {
+        if ($this->processingMessage) {
+            $this->proccessMessages([$this->processingMessage]);
+        }
     }
 }
