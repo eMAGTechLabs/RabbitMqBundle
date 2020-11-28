@@ -26,7 +26,6 @@
         </service>
 
         <service id="old_sound_rabbit_mq.consumer_command" class="OldSound\RabbitMqBundle\Command\ConsumerCommand">
-            <argument type="service" id="old_sound_rabbit_mq.declaration_registry"></argument>
             <call method="setContainer" >
                 <argument tag="service" id="service_container"></argument>
             </call>
@@ -39,10 +38,6 @@
 
         <service id="old_sound_rabbit_mq.purge_consumer_command" class="OldSound\RabbitMqBundle\Command\PurgeConsumerCommand">
             <tag name="console.command" command="rabbitmq:purge" />
-        </service>
-
-        <service id="old_sound_rabbit_mq.command.rpc_server_command" class="OldSound\RabbitMqBundle\Command\RpcServerCommand">
-            <tag name="console.command" command="rabbitmq:rpc-server" />
         </service>
 
         <service id="old_sound_rabbit_mq.command.declare_command" class="OldSound\RabbitMqBundle\Command\DeclareCommand">

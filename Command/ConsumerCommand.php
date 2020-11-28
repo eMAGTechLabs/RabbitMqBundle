@@ -23,15 +23,6 @@ class ConsumerCommand extends Command
     use ContainerAwareTrait;
     /** @var iterable|Consumer[] */
     protected $consumers;
-    /** @var DeclarationsRegistry */
-    protected $declarationsRegistry;
-    
-    public function __construct(
-        DeclarationsRegistry $declarationsRegistry
-    ) {
-        $this->declarationsRegistry = $declarationsRegistry;
-        parent::__construct();
-    }
     
     protected function configure()
     {
@@ -60,10 +51,11 @@ class ConsumerCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $alias = sprintf('old_sound_rabbit_mq.consumer.%s', $input->getArgument('name'));
+        $consumerName = $input->getArgument('name');
+        $alias = sprintf('old_sound_rabbit_mq.consumer.%s', $consumerName);
         if (!$this->container->has($alias)) {
-            $containerNames = ['ss']; // TODO
-            throw new InvalidArgumentException(sprintf('Allow consumers %s', join(', ', $containerNames)));
+            $containerNames = $this->container->getParameter('old_sound_rabbit_mq.allowed_consumer_names');
+            throw new InvalidArgumentException(sprintf('Consumer %s is undefined. Allowed ones: %s', $consumerName, join(', ', $containerNames)));
         }
 
         /** @var Consumer $consumer */
@@ -114,8 +106,9 @@ class ConsumerCommand extends Command
         $declarator->setLogger(
             new ConsoleLogger($output)
         );
+        $declarationRegistry = $this->container->get('old_sound_rabbit_mq.declaration_registry');
         foreach($consumer->getQueueConsumings() as $queueConsuming) {
-            $declarator->declareForQueueDeclaration($queueConsuming->queueName, $this->declarationsRegistry);
+            $declarator->declareForQueueDeclaration($queueConsuming->queueName, $declarationRegistry);
         }
     }
     

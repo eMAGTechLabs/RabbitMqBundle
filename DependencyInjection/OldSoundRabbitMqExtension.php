@@ -62,6 +62,7 @@ class OldSoundRabbitMqExtension extends Extension
         $this->loadConnections();
 
         $declarationRegistryDef = new Definition(DeclarationsRegistry::class);
+        $declarationRegistryDef->setPublic(true);
         $declarationRegistryDef->setAutowired(true);
         $this->container->setDefinition('old_sound_rabbit_mq.declaration_registry', $declarationRegistryDef);
 
@@ -140,7 +141,6 @@ class OldSoundRabbitMqExtension extends Extension
         foreach ($routingKeys as $routingKey)
         {
             $definition = new Definition(BindingDeclaration::class);
-            $definition->addTag('old_sound_rabbit_mq.binding');
             $definition->setProperties([
                 'exchange' => $exchange ? $exchange : $binding['exchange'],
                 'destinationIsExchange' => isset($destinationIsExchange) ? $destinationIsExchange : $binding['destination_is_exchange'],

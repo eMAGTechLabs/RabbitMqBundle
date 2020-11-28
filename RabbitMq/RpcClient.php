@@ -17,9 +17,6 @@ use Symfony\Component\Serializer\Serializer;
 
 class RpcClient implements BatchConsumerInterface
 {
-
-    /** @var string */
-    private $name;
     /** @var AMQPChannel */
     private $channel;
     /** @var int */
@@ -37,11 +34,9 @@ class RpcClient implements BatchConsumerInterface
     private $replies = [];
 
     public function __construct(
-        string $name,
         AMQPChannel $channel,
         int $expiration = 10000
     ) {
-        $this->name = $name;
         $this->channel = $channel;
         $this->serializer = $serializer ?? new JsonMessageBodySerializer();
         $this->expiration = $expiration;

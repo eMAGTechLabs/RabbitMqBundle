@@ -277,7 +277,7 @@ class Consumer
                 if (!$queueConsuming->noAck && is_int($flag)) {
                     $logContent['return_code'] = $flag;
                 }
-                $this->logger->debug('Queue message processed', ['amqp' => $logContent]);
+                $this->logger->info('Queue message processed', ['amqp' => $logContent]);
 
                 $this->dispatchEvent(
                     AfterProcessingMessageEvent::NAME,
@@ -295,8 +295,9 @@ class Consumer
             }
             $this->stopConsuming();
         } catch (\Throwable $e) {
-            $this->logger->error($e->getMessage(), [
-                'amqp' => $logAmqpContext + ['stacktrace' => $e->getTraceAsString()]
+            $this->logger->error('Throw exception while process messages', [
+                'amqp' => $logAmqpContext,
+                'exception' => $e
             ]);
             throw $e;
         }
