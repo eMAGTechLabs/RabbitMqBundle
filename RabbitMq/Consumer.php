@@ -345,12 +345,12 @@ class Consumer
                 } else if ($processFlag === ConsumerInterface::MSG_REJECT) {
                     $channel->basic_reject($deliveryTag, false); // Reject and drop
                 } else if ($processFlag !== ConsumerInterface::MSG_ACK_SENT) {
-                    $channel->basic_ack($deliveryTag); // Remove message from queue only if callback return not false
-
                     $isRpcCall = $message->has('reply_to') && $message->has('correlation_id');
                     if ($isRpcCall) {
                         $this->sendRpcReply($message, $reply);
                     }
+
+                    $channel->basic_ack($deliveryTag); // Remove message from queue only if callback return not false
                 }
 
                 $this->consumed++;

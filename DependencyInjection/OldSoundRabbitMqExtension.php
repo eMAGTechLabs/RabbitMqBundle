@@ -163,6 +163,8 @@ class OldSoundRabbitMqExtension extends Extension
 
     protected function loadConnections()
     {
+        $connFactoryDer = new Definition('%old_sound_rabbit_mq.connection_factory.class%');
+
         foreach ($this->config['connections'] as $key => $connection) {
             $connectionSuffix = $connection['use_socket'] ? 'socket_connection.class' : 'connection.class';
             $classParam =
@@ -170,26 +172,12 @@ class OldSoundRabbitMqExtension extends Extension
                     ? '%old_sound_rabbit_mq.lazy.'.$connectionSuffix.'%'
                     : '%old_sound_rabbit_mq.'.$connectionSuffix.'%';
 
-            $definition = new Definition('%old_sound_rabbit_mq.connection_factory.class%', [
-                $classParam, $connection,
-            ]);
-            if (isset($connection['connection_parameters_provider'])) {
-                $definition->addArgument(new Reference($connection['connection_parameters_provider']));
-                unset($connection['connection_parameters_provider']);
-            }
-            $definition->setPublic(false);
-            $factoryName = sprintf('old_sound_rabbit_mq.connection_factory.%s', $key);
-            $this->container->setDefinition($factoryName, $definition);
-
             $definition = new Definition($classParam);
-            if (method_exists($definition, 'setFactory')) {
-                // to be inlined in services.xml when dependency on Symfony DependencyInjection is bumped to 2.6
-                $definition->setFactory([new Reference($factoryName), 'createConnection']);
-            } else {
-                // to be removed when dependency on Symfony DependencyInjection is bumped to 2.6
-                $definition->setFactoryService($factoryName);
-                $definition->setFactoryMethod('createConnection');
-            }
+            $definition->setPublic(false);
+
+            $definition->setFactory([$connFactoryDer, 'createConnection']);
+            $definition->setArguments([$classParam, $connection]);
+
             $definition->addTag('old_sound_rabbit_mq.connection');
             $definition->setPublic(true);
 
