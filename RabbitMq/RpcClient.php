@@ -8,6 +8,8 @@ use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
 use OldSound\RabbitMqBundle\Declarations\QueueDeclaration;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy;
 use OldSound\RabbitMqBundle\RabbitMq\Exception\RpcResponseException;
+use OldSound\RabbitMqBundle\Serializer\JsonMessageBodySerializer;
+use OldSound\RabbitMqBundle\Serializer\MessageBodySerializerInterface;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -21,10 +23,8 @@ class RpcClient
     private $name;
     /** @var AMQPChannel */
     private $channel;
-    /** @var Serializer */
-    private $serializer;
-    /** @var string|null */
-    private $repliesQueueName;
+    /** @var MessageBodySerializerInterface[] */
+    private $serializers;
     /** @var int */
     private $expiration;
 
@@ -34,45 +34,23 @@ class RpcClient
     public function __construct(
         string $name,
         AMQPChannel $channel,
-        Serializer $serializer,
-        string $repliesQueueName = null,
         int $expiration = 10000
     ) {
         $this->name = $name;
         $this->channel = $channel;
-        $this->serializer = $serializer;
-        $this->repliesQueueName = $repliesQueueName;
+        $this->serializer = $serializer ?? new JsonMessageBodySerializer();
         $this->expiration = $expiration;
     }
 
-    public function setup(): RpcClient
+    public function declareRepliesQueue($repliesQueueName = null): RpcClient
     {
         $this->anonRepliesQueue = $this->createAnonQueueDeclaration();
-        $this->anonRepliesQueue->name = $this->repliesQueueName;
+        $this->anonRepliesQueue->name = $repliesQueueName;
         $declarator = new Declarator($this->channel);
         [$queueName] = $declarator->declareQueues([$this->anonRepliesQueue]);
         $this->anonRepliesQueue->name = $queueName;
 
         return $this;
-    }
-
-    public function addRequest($msgBody, $rpcQueue)
-    {
-        if (!$this->anonRepliesQueue) {
-            throw new \LogicException('no init anonRepliesQueue');
-        }
-
-        $replyToQueue = $this->anonRepliesQueue->name; // 'amq.rabbitmq.reply-to';
-        $msg = new AMQPMessage($this->serializer->serialize($msgBody, 'json'), [
-            'content_type' => 'text/plain',
-            'reply_to' => $replyToQueue,
-            'delivery_mode' => 1, // non durable
-            'expiration' => $this->expiration,
-            'correlation_id' => $this->requests
-        ]);
-
-        $this->channel->basic_publish($msg, '', $rpcQueue);
-        $this->requests++;
     }
 
     // TODO public move
@@ -88,7 +66,36 @@ class RpcClient
         return $anonQueueDeclaration;
     }
 
-    public function getReplies($name, $type): array
+    public function addRequest($msgBody, $rpcQueue, MessageBodySerializerInterface $serializer = null)
+    {
+        if (!$this->anonRepliesQueue) {
+            throw new \LogicException('no init anonRepliesQueue');
+        }
+
+        $correlationId = $this->requests;
+        $this->serializers[$correlationId] = $serializer;
+
+        $serializer = $serializer ?? new JsonMessageBodySerializer();
+
+        $replyToQueue = $this->anonRepliesQueue->name; // 'amq.rabbitmq.reply-to';
+        $msg = new AMQPMessage($serializer->serialize($msgBody, 'json'), [
+            'content_type' => 'text/plain',
+            'reply_to' => $replyToQueue,
+            'delivery_mode' => 1, // non durable
+            'expiration' => $this->expiration,
+            'correlation_id' => $correlationId
+        ]);
+
+        $this->channel->basic_publish($msg, '', $rpcQueue);
+        $this->requests++;
+    }
+
+    /**
+     * @param $name
+     * @param MessageBodySerializerInterface $serializer
+     * @return array|AMQPMessage[]
+     */
+    public function getReplies($name): array
     {
         if (0 === $this->requests) {
             throw new \LogicException('request empty');
@@ -121,19 +128,15 @@ class RpcClient
         $replices = [];
         foreach($consuming->callback->messages as $message) {
             /** @var AMQPMessage $message */
-            if (null === $message->get('correlation_id')) {
+            if (!$message->has('correlation_id')) {
                 $this->logger->error('unexpected message. rpc replies have no correlation_id ');
                 continue;
             }
 
-            $v = (array) json_decode($message->body, true);
-            if (isset($v['error_code'])) {
-                $reply = new RpcResponseException($v['message'], $v['error_code']);
-            } else {
-                $reply = $this->serializer->deserialize($message->body, $type, 'json');
-            }
-
-            $replices[$message->get('correlation_id')] = $reply;
+            $correlationId = $message->get('correlation_id');
+            $serializer = $this->serializers[$correlationId];
+            $reply = $serializer ? $serializer->deserialize($message->body) : $message;
+            $replices[$correlationId] = $reply;
         }
         ksort($replices);
         return $replices;

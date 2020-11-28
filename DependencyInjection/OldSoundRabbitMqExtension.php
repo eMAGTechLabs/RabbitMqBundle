@@ -294,7 +294,7 @@ class OldSoundRabbitMqExtension extends Extension
             //dump($hasSerializer);
             if ($hasSerializer) {
                 $this->container->setAlias($serializerAlias, SerializerInterface::class);
-                $definition->addMethodCall('setSerializer', [new Reference($serializerAlias)]);
+                //$definition->addMethodCall('setSerializer', [new Reference($serializerAlias)]);
             }
             $definition->addTag('old_sound_rabbit_mq.consumer');
             foreach($consumer['consumeQueues'] as $index => $consumeQueue) {

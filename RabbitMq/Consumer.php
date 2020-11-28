@@ -15,6 +15,8 @@ use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\MessagesProcessorInterface;
 use OldSound\RabbitMqBundle\MemoryChecker\MemoryConsumptionChecker;
 use OldSound\RabbitMqBundle\MemoryChecker\NativeMemoryUsageProvider;
 use OldSound\RabbitMqBundle\RabbitMq\Exception\RpcResponseException;
+use OldSound\RabbitMqBundle\Serializer\JsonMessageBodySerializer;
+use OldSound\RabbitMqBundle\Serializer\MessageBodySerializerInterface;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
@@ -37,7 +39,7 @@ class Consumer
     protected $queueConsumings = [];
     /** @var ExecuteCallbackStrategyInterface[] */
     protected $executeCallbackStrategies = [];
-    /** @var SerializerInterface|null */
+    /** @var MessageBodySerializerInterface */
     protected $serializer;
 
     /** @var string[] */
@@ -81,6 +83,7 @@ class Consumer
         $this->name = $name;
         $this->channel = $channel;
         $this->logger = new NullLogger();
+        $this->serializer = new JsonMessageBodySerializer();
     }
     
     public function getName(): string
@@ -93,7 +96,7 @@ class Consumer
         return $this->channel;
     }
 
-    public function setSerializer(SerializerInterface $serializer)
+    public function setSerializer(MessageBodySerializerInterface $serializer)
     {
         $this->serializer = $serializer;
     }
@@ -380,17 +383,9 @@ class Consumer
     {
         $isRpcCall = $message->has('reply_to') && $message->has('correlation_id');
         if ($isRpcCall) {
-            $body = null;
-            if ($result instanceof RpcReponse) {
-                $body = $this->serializer->serialize($result, 'json');
-            } else if ($result instanceof RpcResponseException) {
-                $body = $this->serializer->serialize([
-                    'error_code' => $result->getCode(),
-                    'message' => $result->getMessage(),
-                ], 'json');
-            }
 
-            if ($body) {
+            if ($result instanceof RpcReponse || $result instanceof RpcResponseException) {
+                $body = $this->serializer->serialize($result);
                 $replayMessage = new AMQPMessage($body, [
                     'content_type' => 'text/plain',
                     'correlation_id' => $message->get('correlation_id'),
