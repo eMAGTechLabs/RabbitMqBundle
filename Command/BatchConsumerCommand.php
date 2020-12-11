@@ -29,7 +29,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
         }
     }
 
-    protected function configure()
+    protected function configure(): void
     {
         parent::configure();
 
@@ -37,25 +37,19 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
             ->setName('rabbitmq:batch:consumer')
             ->addArgument('name', InputArgument::REQUIRED, 'Consumer Name')
             ->addOption('route', 'r', InputOption::VALUE_OPTIONAL, 'Routing Key', '')
-            ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process', null)
+            ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process')
             ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Enable Debugging')
             ->addOption('without-signals', 'w', InputOption::VALUE_NONE, 'Disable catching of system signals')
             ->setDescription('Executes a Batch Consumer');
-        ;
     }
 
     /**
      * Executes the current command.
      *
-     * @param   InputInterface      $input      An InputInterface instance
-     * @param   OutputInterface     $output     An OutputInterface instance
-     *
-     * @return  integer                         0 if everything went fine, or an error code
-     *
      * @throws  \InvalidArgumentException       When the number of messages to consume is less than 0
-     * @throws  \BadFunctionCallException       When the pcntl is not installed and option -s is true
+     * @throws  \BadFunctionCallException|\ErrorException       When the pcntl is not installed and option -s is true
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         if (defined('AMQP_WITHOUT_SIGNALS') === false) {
             define('AMQP_WITHOUT_SIGNALS', $input->getOption('without-signals'));

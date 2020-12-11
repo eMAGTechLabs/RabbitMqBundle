@@ -104,9 +104,7 @@ class OldSoundRabbitMqExtension extends Extension
                 // to be inlined in services.xml when dependency on Symfony DependencyInjection is bumped to 2.6
                 $definition->setFactory(array(new Reference($factoryName), 'createConnection'));
             } else {
-                // to be removed when dependency on Symfony DependencyInjection is bumped to 2.6
-                $definition->setFactoryService($factoryName);
-                $definition->setFactoryMethod('createConnection');
+                $definition->setFactory(array(new Reference($factoryName), 'createConnection'));
             }
             $definition->addTag('old_sound_rabbit_mq.connection');
             $definition->setPublic(true);

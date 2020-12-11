@@ -27,7 +27,7 @@ class DynamicConsumer extends Consumer{
      *
      * @return self
      */
-    public function setQueueOptionsProvider(QueueOptionsProviderInterface $queueOptionsProvider)
+    public function setQueueOptionsProvider(QueueOptionsProviderInterface $queueOptionsProvider): self
     {
         $this->queueOptionsProvider = $queueOptionsProvider;
         return $this;

@@ -11,10 +11,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 
 class DynamicConsumerTest extends ConsumerTest
 {
-    /**
-     * @return DynamicConsumer
-     */
-    public function getConsumer(AMQPConnection $amqpConnection, AMQPChannel $amqpChannel)
+    public function getConsumer(AMQPConnection $amqpConnection, AMQPChannel $amqpChannel): DynamicConsumer
     {
         return new DynamicConsumer($amqpConnection, $amqpChannel);
     }
@@ -30,7 +27,7 @@ class DynamicConsumerTest extends ConsumerTest
             ->getMock();
     }
 
-    public function testQueueOptionsPrivider(): void
+    public function testQueueOptionsProvider(): void
     {
         $amqpConnection = $this->prepareAMQPConnection();
         $amqpChannel = $this->prepareAMQPChannel();

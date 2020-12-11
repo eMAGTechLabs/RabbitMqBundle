@@ -4,7 +4,6 @@ namespace OldSound\RabbitMqBundle\Event;
 
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use PhpAmqpLib\Message\AMQPMessage;
-use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class AMQPEvent

@@ -32,7 +32,7 @@ class AMQPConnectionFactory
      * @param string                                $class              FQCN of AMQPConnection class to instantiate.
      * @param array                                 $parameters         Map containing parameters resolved by
      *                                                                  Extension.
-     * @param ConnectionParametersProviderInterface $parametersProvider Optional service providing/overriding
+     * @param ConnectionParametersProviderInterface|null $parametersProvider Optional service providing/overriding
      *                                                                  connection parameters.
      */
     public function __construct(

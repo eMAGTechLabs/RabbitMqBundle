@@ -2,7 +2,11 @@
 
 namespace OldSound\RabbitMqBundle\Command;
 
-use OldSound\RabbitMqBundle\RabbitMq\BaseConsumer as Consumer;
+use OldSound\RabbitMqBundle\RabbitMq\AnonConsumer;
+use OldSound\RabbitMqBundle\RabbitMq\BaseConsumer;
+use OldSound\RabbitMqBundle\RabbitMq\Consumer;
+use OldSound\RabbitMqBundle\RabbitMq\DynamicConsumer;
+use OldSound\RabbitMqBundle\RabbitMq\MultipleConsumer;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -11,7 +15,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 abstract class BaseConsumerCommand extends BaseRabbitMqCommand
 {
-    /** @var Consumer */
+    /** @var DynamicConsumer|MultipleConsumer|AnonConsumer */
     protected $consumer;
 
     /** @var string */
@@ -24,7 +28,7 @@ abstract class BaseConsumerCommand extends BaseRabbitMqCommand
 
     public function stopConsumer(): void
     {
-        if ($this->consumer instanceof Consumer) {
+        if ($this->consumer instanceof BaseConsumer) {
             // Process current message, then halt consumer
             $this->consumer->forceStopConsumer();
 
@@ -37,7 +41,7 @@ abstract class BaseConsumerCommand extends BaseRabbitMqCommand
 
     public function restartConsumer():void
     {
-        if ($this->consumer instanceof Consumer) {
+        if ($this->consumer instanceof BaseConsumer) {
             // Process current message, then halt consumer
             $this->consumer->forceStopConsumer();
 
@@ -49,7 +53,7 @@ abstract class BaseConsumerCommand extends BaseRabbitMqCommand
         }
     }
 
-    protected function configure()
+    protected function configure(): void
     {
         parent::configure();
 
@@ -57,7 +61,7 @@ abstract class BaseConsumerCommand extends BaseRabbitMqCommand
             ->addArgument('name', InputArgument::REQUIRED, 'Consumer Name')
             ->addOption('messages', 'm', InputOption::VALUE_OPTIONAL, 'Messages to consume', 0)
             ->addOption('route', 'r', InputOption::VALUE_OPTIONAL, 'Routing Key', '')
-            ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process (MB)', null)
+            ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process (MB)')
             ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Enable Debugging')
             ->addOption('without-signals', 'w', InputOption::VALUE_NONE, 'Disable catching of system signals')
         ;
@@ -66,15 +70,10 @@ abstract class BaseConsumerCommand extends BaseRabbitMqCommand
     /**
      * Executes the current command.
      *
-     * @param InputInterface  $input  An InputInterface instance
-     * @param OutputInterface $output An OutputInterface instance
-     *
-     * @return integer 0 if everything went fine, or an error code
-     *
      * @throws \InvalidArgumentException When the number of messages to consume is less than 0
      * @throws \BadFunctionCallException When the pcntl is not installed and option -s is true
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         if (defined('AMQP_WITHOUT_SIGNALS') === false) {
             define('AMQP_WITHOUT_SIGNALS', $input->getOption('without-signals'));
@@ -101,7 +100,7 @@ abstract class BaseConsumerCommand extends BaseRabbitMqCommand
         }
         $this->initConsumer($input);
 
-        return $this->consumer->consume($this->amount);
+        return $this->consumer->consume((int)$this->amount);
     }
 
     protected function initConsumer(InputInterface $input): void
@@ -113,5 +112,7 @@ abstract class BaseConsumerCommand extends BaseRabbitMqCommand
             $this->consumer->setMemoryLimit($input->getOption('memory-limit'));
         }
         $this->consumer->setRoutingKey($input->getOption('route'));
+
+        $this->consumer->setContext($input->getArgument('context'));
     }
 }

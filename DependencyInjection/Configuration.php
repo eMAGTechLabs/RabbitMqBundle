@@ -406,7 +406,7 @@ class Configuration implements ConfigurationInterface
         $node = new ArrayNodeDefinition('queues');
         $prototypeNode = $node->prototype('array');
 
-        $this->addQueueNodeConfiguration($prototypeNode);
+        $this->addQueueNodeConfiguration($node);
 
         $prototypeNode->children()
             ->scalarNode('callback')->isRequired()->end()

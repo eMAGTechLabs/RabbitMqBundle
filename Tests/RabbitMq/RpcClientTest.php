@@ -72,7 +72,6 @@ class RpcClientTest extends TestCase
     public function testChannelCancelOnGetRepliesException(): void
     {
         $client = $this->getMockBuilder('\OldSound\RabbitMqBundle\RabbitMq\RpcClient')
-            ->setMethods(null)
             ->disableOriginalConstructor()
             ->getMock();
 

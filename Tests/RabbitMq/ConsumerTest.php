@@ -20,10 +20,7 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface as ContractsEvent
 
 class ConsumerTest extends TestCase
 {
-    /**
-     * @return Consumer
-     */
-    protected function getConsumer(AMQPConnection $amqpConnection, AMQPChannel $amqpChannel)
+    protected function getConsumer(AMQPConnection $amqpConnection, AMQPChannel $amqpChannel): Consumer
     {
         return new Consumer($amqpConnection, $amqpChannel);
     }
