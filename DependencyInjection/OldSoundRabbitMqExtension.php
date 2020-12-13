@@ -270,7 +270,7 @@ class OldSoundRabbitMqExtension extends Extension
                 $queueConsumingDef = new Definition(QueueConsuming::class);
                 $queueConsumingDef->setProperties([
                     'queueName' => $consumeQueue['queue'],
-                    'callback' => new Reference($consumeQueue['callback']),
+                    'receiver' => new Reference($consumeQueue['receiver']),
                     //'qosPrefetchSize' => $consumeQueue['qos_prefetch_size'],
                     'qosPrefetchCount' => $consumeQueue['qos_prefetch_count'],
                     'batchCount' => $consumeQueue['batch_count'] ?? null,
@@ -407,6 +407,7 @@ class OldSoundRabbitMqExtension extends Extension
     }
 
     /**
+     * TODO!
      * Add proper dequeuer aware call
      *
      * @param string $callback

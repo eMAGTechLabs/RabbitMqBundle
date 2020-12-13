@@ -2,8 +2,9 @@
 
 namespace OldSound\RabbitMqBundle\Declarations;
 
-use OldSound\RabbitMqBundle\RabbitMq\BatchConsumerInterface;
-use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
+use OldSound\RabbitMqBundle\Receiver\BatchReceiverInterface;
+use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
+use OldSound\RabbitMqBundle\Receiver\ReplyReceiverInterface;
 
 class QueueConsuming
 {
@@ -21,8 +22,8 @@ class QueueConsuming
     public $noAck = false;
     /** @var bool */
     public $nowait = false;
-    /** @var ConsumerInterface|BatchConsumerInterface */
-    public $callback;
+    /** @var ReceiverInterface|BatchReceiverInterface|ReplyReceiverInterface */
+    public $receiver;
     /** @var int */
     public $qosPrefetchCount = 0;
     /** @var int */

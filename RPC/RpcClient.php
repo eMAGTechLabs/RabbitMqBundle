@@ -1,6 +1,6 @@
 <?php
 
-namespace OldSound\RabbitMqBundle\RabbitMq;
+namespace OldSound\RabbitMqBundle\RPC;
 
 use OldSound\RabbitMqBundle\Declarations\BindingDeclaration;
 use OldSound\RabbitMqBundle\Declarations\Declarator;
@@ -15,7 +15,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Serializer\Serializer;
 
-class RpcClient implements BatchConsumerInterface
+class RpcClient implements BatchReceiverInterface
 {
     /** @var AMQPChannel */
     private $channel;
@@ -114,7 +114,7 @@ class RpcClient implements BatchConsumerInterface
         $consuming->exclusive = true;
         $consuming->qosPrefetchCount = $this->requests;
         $consuming->queueName = $this->anonRepliesQueue->name;
-        $consuming->callback = $this;
+        $consuming->receiver = $this;
         $consumer->consumeQueue($consuming, new BatchExecuteCallbackStrategy($this->requests));
 
         try {

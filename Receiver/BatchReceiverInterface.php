@@ -1,15 +1,16 @@
 <?php
 
-namespace OldSound\RabbitMqBundle\RabbitMq;
+namespace OldSound\RabbitMqBundle\Receiver;
 
 use PhpAmqpLib\Message\AMQPMessage;
 
-interface BatchConsumerInterface
+interface BatchReceiverInterface
 {
     /**
      * @param AMQPMessage[] $messages
      * @return array|int
-     * @throws StopConsumerException
+     * @throws ReceiveException
+     * @throws NotReadyReceiveException
      */
     public function batchExecute(array $messages);
 }

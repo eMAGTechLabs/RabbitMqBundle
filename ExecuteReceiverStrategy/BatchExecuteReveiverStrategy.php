@@ -6,7 +6,7 @@ use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 
-class BatchExecuteCallbackStrategy extends AbstractExecuteCallbackStrategy
+class BatchExecuteReveiverStrategy extends AbstractExecuteCallbackStrategy
 {
     /** @var int */
     private $batchCount;

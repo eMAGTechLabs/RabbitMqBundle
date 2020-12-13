@@ -12,13 +12,18 @@ use OldSound\RabbitMqBundle\Event\BeforeProcessingMessagesEvent;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\Event\OnIdleEvent;
 use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
-use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy;
-use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\FnMessagesProcessor;
-use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\MessagesProcessorInterface;
-use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\SimpleExecuteCallbackStrategy;
+use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\BatchExecuteReceiverStrategy;
+use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\ExecuteReceiverStrategyInterface;
+use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\FnMessagesProcessor;
+use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\MessagesProcessorInterface;
+use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\SimpleExecuteReceiverStrategy;
 use OldSound\RabbitMqBundle\MemoryChecker\MemoryConsumptionChecker;
 use OldSound\RabbitMqBundle\MemoryChecker\NativeMemoryUsageProvider;
-use OldSound\RabbitMqBundle\RabbitMq\Exception\RpcResponseException;
+use OldSound\RabbitMqBundle\Producer\ProducerInterface;
+use OldSound\RabbitMqBundle\Receiver\NotReadyReceiveException;
+use OldSound\RabbitMqBundle\Receiver\ReceiverException;
+use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
+use OldSound\RabbitMqBundle\Receiver\ReplyReceiverInterface;
 use OldSound\RabbitMqBundle\Serializer\JsonMessageBodySerializer;
 use OldSound\RabbitMqBundle\Serializer\MessageBodySerializerInterface;
 use PhpAmqpLib\Channel\AMQPChannel;
@@ -27,7 +32,7 @@ use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
-use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\ExecuteCallbackStrategyInterface;
+use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\ExecuteReceiverStrategyInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 class Consumer
@@ -39,8 +44,8 @@ class Consumer
     protected $channel;
     /** @var QueueConsuming[] */
     protected $queueConsumings = [];
-    /** @var ExecuteCallbackStrategyInterface[] */
-    protected $executeCallbackStrategies = [];
+    /** @var ExecuteReceiverStrategyInterface[] */
+    protected $executeReceiverStrategies = [];
     /** @var MessageBodySerializerInterface */
     protected $serializer;
 
@@ -49,7 +54,7 @@ class Consumer
     /** @var array */
     protected $basicProperties = [
         'content_type' => 'text/plain',
-        'delivery_mode' => 2
+        'delivery_mode' => ProducerInterface::DELIVERY_MODE_PERSISTENT
     ];
     /** @var int|null */
     protected $target;
@@ -110,7 +115,7 @@ class Consumer
                 $queueConsuming->exclusive,
                 $queueConsuming->nowait,
                 function (AMQPMessage $message) use ($queueConsuming) {
-                    $this->getExecuteCallbackStrategy($queueConsuming)->consumeCallback($message);
+                    $this->getExecuteReceiverStrategy($queueConsuming)->consumeCallback($message);
                 });
 
             //$queueConsuming->consumerTag = $consumerTag;
@@ -130,19 +135,19 @@ class Consumer
         }
     }
 
-    public function consumeQueue(QueueConsuming $queueConsuming, ExecuteCallbackStrategyInterface $executeCallbackStrategy = null): Consumer
+    public function consumeQueue(QueueConsuming $queueConsuming, ExecuteReceiverStrategyInterface $executeReceiverStrategy = null): Consumer
     {
         $this->queueConsumings[] = $queueConsuming;
-        if (null === $executeCallbackStrategy) {
-            $executeCallbackStrategy = null === $queueConsuming->batchCount ?
-                new SimpleExecuteCallbackStrategy() :
-                new BatchExecuteCallbackStrategy($queueConsuming->batchCount);
+        if (null === $executeReceiverStrategy) {
+            $executeReceiverStrategy = null === $queueConsuming->batchCount ?
+                new SimpleExecuteReceiverStrategy() :
+                new BatchExecuteReceiverStrategy($queueConsuming->batchCount);
         }
 
-        $executeCallbackStrategy->setMessagesProccessor(new FnMessagesProcessor(
+        $executeReceiverStrategy->setMessagesProccessor(new FnMessagesProcessor(
             (function (array $messages) use ($queueConsuming) {
                 $logAmqpContext = ['queue' => $queueConsuming->queueName];
-                if ($this->getExecuteCallbackStrategy($queueConsuming)->canPrecessMultiMessages()) {
+                if ($this->getExecuteReceiverStrategy($queueConsuming)->canPrecessMultiMessages()) {
                     $logAmqpContext['messages'] = $messages;
                 } else {
                     $logAmqpContext['message'] = $messages[0];
@@ -153,7 +158,7 @@ class Consumer
                 );
 
                 try {
-                    $replies = $this->processMessages($messages, $queueConsuming);
+                    $this->processMessages($messages, $queueConsuming);
                 } catch (Exception\StopConsumerException $e) {
                     $this->logger->info('Consumer requested stop', [
                         'amqp' => $logAmqpContext,
@@ -180,25 +185,25 @@ class Consumer
             })->bindTo($this)
         ));
 
-        $canPrecessMultiMessages = $executeCallbackStrategy->canPrecessMultiMessages();
+        $canPrecessMultiMessages = $executeReceiverStrategy->canPrecessMultiMessages();
         if ($canPrecessMultiMessages) {
-            if (!$queueConsuming->callback instanceof BatchConsumerInterface) {
+            if (!$queueConsuming->receiver instanceof BatchReceiverInterface) {
                 throw new \InvalidArgumentException('TODO '. $queueConsuming->queueName);
             }
         } else {
-            if (!$queueConsuming->callback instanceof ConsumerInterface) {
+            if (!$queueConsuming->receiver instanceof ReceiverInterface) {
                 throw new \InvalidArgumentException('TODO '. $queueConsuming->queueName);
             }
         }
 
-        $this->executeCallbackStrategies[] = $executeCallbackStrategy;
+        $this->executeReceiverStrategies[] = $executeReceiverStrategy;
 
         return $this;
     }
 
-    private function getExecuteCallbackStrategy(QueueConsuming $queueConsuming): ExecuteCallbackStrategyInterface
+    private function getExecuteReceiverStrategy(QueueConsuming $queueConsuming): ExecuteReceiverStrategyInterface
     {
-        return $this->executeCallbackStrategies[array_search($queueConsuming, $this->queueConsumings, true)];
+        return $this->executeReceiverStrategies[array_search($queueConsuming, $this->queueConsumings, true)];
     }
 
     /**
@@ -220,9 +225,9 @@ class Consumer
     {
         $this->target = $msgAmount;
         $this->consumed = 0;
-        
+
         $this->setup();
-        
+
         $this->lastActivityDateTime = new \DateTime();
         while ($this->channel->is_consuming()) {
             $this->dispatchEvent(OnConsumeEvent::NAME, new OnConsumeEvent($this));
@@ -247,8 +252,8 @@ class Consumer
                     break;
                 }
             } catch (AMQPTimeoutException $e) {
-                foreach($this->executeCallbackStrategies as $executeCallbackStrategy) {
-                    $executeCallbackStrategy->onCatchTimeout($e);
+                foreach($this->executeReceiverStrategies as $executeReceiverStrategy) {
+                    $executeReceiverStrategy->onCatchTimeout($e);
                 }
                 $now = new \DateTime();
                 if ($this->gracefulMaxExecutionDateTime && $this->gracefulMaxExecutionDateTime <= $now) {
@@ -283,32 +288,49 @@ class Consumer
             throw new \InvalidArgumentException('Messages can not be empty');
         }
 
-        $canPrecessMultiMessages = $this->getExecuteCallbackStrategy($queueConsuming)->canPrecessMultiMessages();
+        $canPrecessMultiMessages = $this->getExecuteReceiverStrategy($queueConsuming)->canPrecessMultiMessages();
         if (!$canPrecessMultiMessages && count($messages) !== 1) {
             throw new \InvalidArgumentException('Strategy is not supported process of multi messages');
         }
 
-        /** @var int[]|RpcReponse[]|RpcResponseException[]|bool[] $replies */
-        $replies = [];
-        if ($queueConsuming->callback instanceof BatchConsumerInterface) {
-            $replies = $queueConsuming->callback->batchExecute($messages);
-            if (!is_array($replies)) {
-                $processFlag = $replies;
-                $replies = [];
-                foreach ($messages as $message) {
-                    $replies[$message->getDeliveryTag()] = $processFlag;
+        /** @var int[]|int $flags */
+        $flags = [];
+        try {
+            if ($queueConsuming->receiver instanceof ReceiverInterface) {
+                $flags = $queueConsuming->receiver->execute($messages[0]);
+            } else if ($queueConsuming->receiver instanceof BatchReceiverInterface) {
+                $flags = $queueConsuming->receiver->batchExecute($messages);
+            } else if ($queueConsuming->receiver instanceof ReplyReceiverInterface) {
+                $reply = $queueConsuming->receiver->execute($messages[0]);
+                $isRpcCall = $messages[0]->has('reply_to') && $messages[0]->has('correlation_id');
+                if ($isRpcCall) {
+                    $this->sendRpcReply($messages[0], $reply);
+                    $flags = ReceiverInterface::MSG_ACK;
+                } else {
+                    $flags = ReceiverInterface::MSG_REJECT;
+                    // logging
                 }
-            } else if (count($replies) !== count($messages)) {
-                throw new AMQPRuntimeException(
-                    'Method batchExecute() should return an array with elements equal with the number of messages processed'
-                );
+            } else {
+                throw new \InvalidArgumentException('TODO');
             }
-        } else {
-            try {
-                $replies = [$messages[0]->getDeliveryTag() => $queueConsuming->callback->execute($messages[0])];
-            } catch (Exception\RpcResponseException $e) {
-                $replies = [$messages[0]->getDeliveryTag() => $e];
+        } catch (ReceiverException $exception) {
+            $flags = $exception->getCode();
+        } catch (NotReadyReceiveException $exception) {
+            // TODO
+            $this->forceStop = true;
+            return;
+        }
+
+        if (!is_array($flags)) { // spread handle flag for each delivery tag
+            $flag = $flags;
+            $flags = [];
+            foreach ($messages as $message) {
+                $flags[$message->getDeliveryTag()] = $flag;
             }
+        } else if (count($flags) !== count($messages)) {
+            throw new AMQPRuntimeException(
+                'Method batchExecute() should return an array with elements equal with the number of messages processed'
+            );
         }
 
         if (!$queueConsuming->noAck) {
@@ -317,12 +339,9 @@ class Consumer
                 $messages
             );
 
-            $this->handleProcessMessages($messages, $replies, $queueConsuming);
+            $this->handleProcessMessages($messages, $flags, $queueConsuming);
         }
-
-        return $replies;
     }
-
 
     /**
      * @param AMQPMessage[] $messages
@@ -330,23 +349,22 @@ class Consumer
      */
     private function handleProcessMessages($messages, array $replies, QueueConsuming $queueConsuming)
     {
-        $executeCallbackStrategy = $this->getExecuteCallbackStrategy($queueConsuming);
+        $executeReceiverStrategy = $this->getExecuteReceiverStrategy($queueConsuming);
 
-        $ack = !array_search(fn ($reply) => $reply !== null && $reply !== ConsumerInterface::MSG_ACK, $replies, true);
+        $ack = !array_search(fn ($reply) => $reply !== ReceiverInterface::MSG_ACK, $replies, true);
         if ($this->multiAck && count($messages) > 1 && $ack) {
             $channels = array_map(fn ($message) => $message->getChannel(), $messages);
             if (count($channels) !== array_unique($channels)) { // all messages have same channel
                 throw new InvalidArgumentException('Messages can not be processed as multi ack with different channels');
             }
 
-            $this->channel->basic_ack(last($deliveryTag), true);
-            $this->consumed = $this->consumed + count($messages);
-            $executeCallbackStrategy->onMessageProcessed($message);
+            $lastDeliveryTag = array_key_last($replies);
 
-            return array_combine(
-                array_map(fn ($message) => $message->getDeliveryTag(), $messages),
-                array_fill(0, count($messages), ConsumerInterface::MSG_ACK)
-            );
+            $this->channel->basic_ack($lastDeliveryTag, true);
+            $this->consumed = $this->consumed + count($messages);
+            foreach ($messages as $message) {
+                $executeReceiverStrategy->onMessageProcessed($message);
+            }
         } else {
             foreach ($replies as $deliveryTag => $reply) {
                 $message = $messages[$deliveryTag] ?? null;
@@ -356,24 +374,19 @@ class Consumer
 
                 $channel = $message->getChannel();
                 $processFlag = $reply;
-                if ($processFlag === ConsumerInterface::MSG_REJECT_REQUEUE || false === $processFlag) {
+                if ($processFlag === ReceiverInterface::MSG_REJECT_REQUEUE || false === $processFlag) {
                     $channel->basic_reject($deliveryTag, true); // Reject and requeue message to RabbitMQ
-                } else if ($processFlag === ConsumerInterface::MSG_SINGLE_NACK_REQUEUE) {
+                } else if ($processFlag === ReceiverInterface::MSG_SINGLE_NACK_REQUEUE) {
                     $channel->basic_nack($deliveryTag, false, true); // NACK and requeue message to RabbitMQ
-                } else if ($processFlag === ConsumerInterface::MSG_REJECT) {
+                } else if ($processFlag === ReceiverInterface::MSG_REJECT) {
                     $channel->basic_reject($deliveryTag, false); // Reject and drop
-                } else if ($processFlag !== ConsumerInterface::MSG_ACK_SENT) {
-                    $isRpcCall = $message->has('reply_to') && $message->has('correlation_id');
-                    if ($isRpcCall) {
-                        $this->sendRpcReply($message, $reply);
-                    }
-
+                } else if ($processFlag !== ReceiverInterface::MSG_ACK_SENT) {
                     $channel->basic_ack($deliveryTag); // Remove message from queue only if callback return not false
                 }
 
                 $this->consumed++;
 
-                $executeCallbackStrategy->onMessageProcessed($message);
+                $executeReceiverStrategy->onMessageProcessed($message);
             }
         }
     }
@@ -409,8 +422,8 @@ class Consumer
     public function stopConsuming($immedietly = false)
     {
         if (false === $immedietly) {
-            foreach ($this->executeCallbackStrategies as $executeCallbackStrategy) {
-                $executeCallbackStrategy->onStopConsuming();
+            foreach ($this->executeReceiverStrategies as $executeReceiverStrategy) {
+                $executeReceiverStrategy->onStopConsuming();
             }
         }
 

@@ -73,16 +73,16 @@ See [https://github.com/php-amqplib/php-amqplib/blob/master/doc/AMQPMessage.md](
 <?php
 namespace App\Consumer;
 
-use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
+use OldSound\RabbitMqBundle\RabbitMq\ReceiverInterface;
 use PhpAmqpLib\Message\AMQPMessage;
 
-class HighOrderConsumer implements ConsumerInterface
+class HighOrderConsumer implements ReceiverInterface
 {
     public function execute(AMQPMessage $msg)
     {
         $msg->getBody();
         // process order...
-        return ConsumerInterface::MSG_ACK;
+        return ReceiverInterface::MSG_ACK;
     }
 }
 ```

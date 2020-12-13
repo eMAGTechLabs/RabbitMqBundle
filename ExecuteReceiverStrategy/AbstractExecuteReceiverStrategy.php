@@ -4,7 +4,7 @@ namespace OldSound\RabbitMqBundle\ExecuteCallbackStrategy;
 
 use PhpAmqpLib\Message\AMQPMessage;
 
-abstract class AbstractExecuteCallbackStrategy implements ExecuteCallbackStrategyInterface
+abstract class AbstractExecuteReceiverStrategy implements ExecuteCallbackStrategyInterface
 {
     /** @var MessagesProcessorInterface */
     private $messagesProcessor;

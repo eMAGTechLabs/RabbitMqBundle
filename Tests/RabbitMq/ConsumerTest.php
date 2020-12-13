@@ -11,7 +11,7 @@ use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPConnection;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
-use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
+use OldSound\RabbitMqBundle\RabbitMq\ReceiverInterface;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -104,10 +104,10 @@ class ConsumerTest extends TestCase
             array(null, 'basic_ack'), // Remove message from queue only if callback return not false
             array(true, 'basic_ack'), // Remove message from queue only if callback return not false
             array(false, 'basic_reject', true), // Reject and requeue message to RabbitMQ
-            array(ConsumerInterface::MSG_ACK, 'basic_ack'), // Remove message from queue only if callback return not false
-            array(ConsumerInterface::MSG_REJECT_REQUEUE, 'basic_reject', true), // Reject and requeue message to RabbitMQ
-            array(ConsumerInterface::MSG_REJECT, 'basic_reject', false), // Reject and drop
-            array(ConsumerInterface::MSG_ACK_SENT), // ack not sent by the consumer but should be sent by the implementer of ConsumerInterface
+            array(ReceiverInterface::MSG_ACK, 'basic_ack'), // Remove message from queue only if callback return not false
+            array(ReceiverInterface::MSG_REJECT_REQUEUE, 'basic_reject', true), // Reject and requeue message to RabbitMQ
+            array(ReceiverInterface::MSG_REJECT, 'basic_reject', false), // Reject and drop
+            array(ReceiverInterface::MSG_ACK_SENT), // ack not sent by the consumer but should be sent by the implementer of ConsumerInterface
         );
     }
 

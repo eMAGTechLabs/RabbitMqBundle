@@ -62,6 +62,8 @@ class DeclareCommand extends Command
             //$bindings[] = $producer->exchange;
             //$queues[] = $producer->exchange;
         }
+        
+        $this->declarationsRegistry->exchanges
 
         $declarator = new Declarator($channel);
         // $declarator->declareExchanges($exchanges);

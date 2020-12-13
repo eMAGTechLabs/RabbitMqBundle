@@ -6,13 +6,13 @@ use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 
-interface ExecuteCallbackStrategyInterface
+interface ExecuteReceiverStrategyInterface
 {
-    public function setMessagesProccessor(MessagesProcessorInterface $messagesProcessor);
+    public function setMessagesProcessor(MessagesProcessorInterface $messagesProcessor);
 
     public function canPrecessMultiMessages(): bool;
 
-    public function consumeCallback(AMQPMessage $message);
+    public function onConsumerCallback(AMQPMessage $message);
 
     public function onMessageProcessed(AMQPMessage $message);
 

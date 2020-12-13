@@ -1,6 +1,6 @@
 <?php
 
-namespace OldSound\RabbitMqBundle\RabbitMq;
+namespace OldSound\RabbitMqBundle\Producer;
 
 use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
 use OldSound\RabbitMqBundle\Declarations\Declarator;
@@ -18,20 +18,36 @@ class Producer implements ProducerInterface
 {
     use LoggerAwareTrait;
 
-    public $contentType = 'text/plain';
-    public $deliveryMode = 2;
-    public $autoDeclare = true;
-
     /** @var AMQPChannel */
     protected $channel;
     /** @var string */
     protected $exchange;
+    /** @var bool */
+    protected $autoDeclare;
 
-    public function __construct(AMQPChannel $channel, string $exchange)
+    /** @var string */
+    protected $contentType = 'text/plain';
+    /** @var int */
+    protected $deliveryMode = self::DELIVERY_MODE_PERSISTENT;
+
+    public function __construct(AMQPChannel $channel, string $exchange, bool $autoDeclare = false)
     {
         $this->channel = $channel;
         $this->exchange = $exchange;
         $this->logger = new NullLogger();
+        $this->autoDeclare = $autoDeclare;
+    }
+
+    public function setContentType(string $contentType): Producer
+    {
+        $this->contentType = $contentType;
+        return $this;
+    }
+
+    public function setDeliveryMode(int $deliveryMode): Producer
+    {
+        $this->deliveryMode = $deliveryMode;
+        return $this;
     }
 
     /**

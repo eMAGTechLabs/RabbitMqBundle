@@ -205,7 +205,7 @@ class Configuration implements ConfigurationInterface
                                 ->prototype('array')
                                     ->children()
                                         ->scalarNode('queue')->isRequired()->end()
-                                        ->scalarNode('callback')->isRequired()->end()
+                                        ->scalarNode('receiver')->isRequired()->end()
                                         ->scalarNode('qos_prefetch_size')->defaultValue(0)->end()
                                         ->scalarNode('qos_prefetch_count')->defaultValue(0)->end()
                                         ->scalarNode('batch_count')->end()

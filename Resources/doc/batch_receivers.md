@@ -14,10 +14,10 @@ You can implement a batch consumer that will acknowledge all messages in one ret
 ```php
 namespace App\Consumer;
 
-use OldSound\RabbitMqBundle\RabbitMq\BatchConsumerInterface;
-use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
+use OldSound\RabbitMqBundle\RabbitMq\BatchReceiverInterface;
+use OldSound\RabbitMqBundle\RabbitMq\ReceiverInterface;
 
-class BatchLogsConsumer implements BatchConsumerInterface
+class BatchLogsConsumer implements BatchReceiverInterface
 {
     /**
      * @inheritDoc
@@ -29,7 +29,7 @@ class BatchLogsConsumer implements BatchConsumerInterface
         }
         $this->persist($messages);
         // you ack all messages got in batch
-        return ConsumerInterface::MSG_ACK;
+        return ReceiverInterface::MSG_ACK;
     }
 }
 ```
@@ -37,10 +37,10 @@ class BatchLogsConsumer implements BatchConsumerInterface
 ```php
 namespace AppBundle\Service;
 
-use OldSound\RabbitMqBundle\RabbitMq\BatchConsumerInterface;
+use OldSound\RabbitMqBundle\RabbitMq\BatchReceiverInterface;
 use PhpAmqpLib\Message\AMQPMessage;
 
-class DevckBasicConsumer implements BatchConsumerInterface
+class DevckBasicConsumer implements BatchReceiverInterface
 {
     /**
      * @inheritDoc
