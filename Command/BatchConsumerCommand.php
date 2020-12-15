@@ -78,15 +78,15 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
             define('AMQP_DEBUG', (bool) $input->getOption('debug'));
         }
 
-        $this->amount = (int)$input->getOption('messages');
+        $this->amount = (int) $input->getOption('messages');
 
-        if (0 > (int) $this->amount) {
+        if (0 > $this->amount) {
             throw new \InvalidArgumentException("The -m option should be null or greater than 0");
         }
 
         $this->initConsumer($input);
 
-        return $this->consumer->consume((int)$this->amount);
+        return $this->consumer->consume($this->amount);
     }
 
     /**
