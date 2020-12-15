@@ -4,9 +4,10 @@ namespace OldSound\RabbitMqBundle\RPC;
 
 use OldSound\RabbitMqBundle\Declarations\BindingDeclaration;
 use OldSound\RabbitMqBundle\Declarations\Declarator;
-use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
+use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
 use OldSound\RabbitMqBundle\Declarations\QueueDeclaration;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy;
+use OldSound\RabbitMqBundle\Producer\ProducerInterface;
 use OldSound\RabbitMqBundle\RabbitMq\Exception\RpcResponseException;
 use OldSound\RabbitMqBundle\Serializer\JsonMessageBodySerializer;
 use OldSound\RabbitMqBundle\Serializer\MessageBodySerializerInterface;
@@ -17,6 +18,9 @@ use Symfony\Component\Serializer\Serializer;
 
 class RpcClient implements BatchReceiverInterface
 {
+    const PROPERTY_REPLAY_TO = 'reply_to';
+    const PROPERTY_CORRELATION_ID = 'correlation_id';
+
     /** @var AMQPChannel */
     private $channel;
     /** @var int */
@@ -79,11 +83,11 @@ class RpcClient implements BatchReceiverInterface
 
         $replyToQueue = $this->anonRepliesQueue->name; // 'amq.rabbitmq.reply-to';
         $msg = new AMQPMessage($serializer->serialize($msgBody, 'json'), [
+            self::PROPERTY_REPLAY_TO => $replyToQueue,
+            self::PROPERTY_CORRELATION_ID => $correlationId,
             'content_type' => 'text/plain',
-            'reply_to' => $replyToQueue,
-            'delivery_mode' => 1, // non durable
+            'delivery_mode' => ProducerInterface::DELIVERY_MODE_NON_PERSISTENT,
             'expiration' => $this->expiration,
-            'correlation_id' => $correlationId
         ]);
 
         $this->channel->basic_publish($msg, '', $rpcQueue);
@@ -110,10 +114,10 @@ class RpcClient implements BatchReceiverInterface
         }
 
         $consumer = new Consumer($this->channel);
-        $consuming = new QueueConsuming();
+        $consuming = new ConsumeOptions();
         $consuming->exclusive = true;
         $consuming->qosPrefetchCount = $this->requests;
-        $consuming->queueName = $this->anonRepliesQueue->name;
+        $consuming->queue = $this->anonRepliesQueue->name;
         $consuming->receiver = $this;
         $consumer->consumeQueue($consuming, new BatchExecuteCallbackStrategy($this->requests));
 

@@ -1,12 +1,13 @@
 <?php
 
-namespace OldSound\RabbitMqBundle\ExecuteCallbackStrategy;
+namespace OldSound\RabbitMqBundle\ExecuteReceiverStrategy;
 
-use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
+use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
+use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\ExecuteReceiverStrategyInterface;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 
-class BatchExecuteReveiverStrategy extends AbstractExecuteCallbackStrategy
+class BatchExecuteReceiverStrategy extends AbstractExecuteReceiverStrategy
 {
     /** @var int */
     private $batchCount;
@@ -23,12 +24,12 @@ class BatchExecuteReveiverStrategy extends AbstractExecuteCallbackStrategy
         return true;
     }
 
-    public function consumeCallback(AMQPMessage $message)
+    public function onConsumeCallback(AMQPMessage $message): ?array
     {
         $this->messagesBatch[$message->getDeliveryTag()] = $message;
 
         if ($this->isBatchCompleted()) {
-            $this->proccessMessages($this->messagesBatch);
+            return $this->execute($this->messagesBatch);
         }
     }
 
@@ -40,14 +41,14 @@ class BatchExecuteReveiverStrategy extends AbstractExecuteCallbackStrategy
     public function onCatchTimeout(AMQPTimeoutException $e)
     {
         if (!$this->isBatchEmpty()) {
-            $this->proccessMessages($this->messagesBatch);
+            $this->processMessages($this->messagesBatch);
         }
     }
 
     public function onStopConsuming()
     {
         if (!$this->isBatchEmpty()) {
-            $this->proccessMessages($this->messagesBatch);
+            $this->processMessages($this->messagesBatch);
         }
     }
 

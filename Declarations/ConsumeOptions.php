@@ -2,14 +2,10 @@
 
 namespace OldSound\RabbitMqBundle\Declarations;
 
-use OldSound\RabbitMqBundle\Receiver\BatchReceiverInterface;
-use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
-use OldSound\RabbitMqBundle\Receiver\ReplyReceiverInterface;
-
-class QueueConsuming
+class ConsumeOptions
 {
     /** @var string */
-    public $queueName;
+    public $queue;
     /** @var string|null */
     public $consumerTag;
     /** @var bool */
@@ -20,14 +16,8 @@ class QueueConsuming
     public $exclusive = false;
     /** @var bool */
     public $noAck = false;
-    /** @var bool */
-    public $nowait = false;
-    /** @var ReceiverInterface|BatchReceiverInterface|ReplyReceiverInterface */
-    public $receiver;
     /** @var int */
     public $qosPrefetchCount = 0;
     /** @var int */
     public $qosPrefetchSize = 0;
-    /** @var int|null */
-    public $batchCount;
 }

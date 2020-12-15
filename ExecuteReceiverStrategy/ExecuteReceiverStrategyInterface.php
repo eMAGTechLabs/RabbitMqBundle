@@ -1,18 +1,18 @@
 <?php
 
-namespace OldSound\RabbitMqBundle\ExecuteCallbackStrategy;
+namespace OldSound\RabbitMqBundle\ExecuteReceiverStrategy;
 
-use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
+use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverExecutorInterface;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 
 interface ExecuteReceiverStrategyInterface
 {
-    public function setMessagesProcessor(MessagesProcessorInterface $messagesProcessor);
+    public function setReceiverExecutor(ReceiverExecutorInterface $receiverExecutor);
 
     public function canPrecessMultiMessages(): bool;
 
-    public function onConsumerCallback(AMQPMessage $message);
+    public function onConsumeCallback(AMQPMessage $message): ?array;
 
     public function onMessageProcessed(AMQPMessage $message);
 

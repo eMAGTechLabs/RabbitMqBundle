@@ -11,7 +11,7 @@ class ExtraContextLogger implements LoggerInterface
     /** @var array */
     private $extraContext;
 
-    public function __constract(LoggerInterface $origin, array $extraContext)
+    public function __construct(LoggerInterface $origin, array $extraContext)
     {
         $this->origin = $origin;
         $this->extraContext = $extraContext;

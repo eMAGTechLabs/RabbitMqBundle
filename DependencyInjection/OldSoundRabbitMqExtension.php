@@ -4,7 +4,7 @@ namespace OldSound\RabbitMqBundle\DependencyInjection;
 
 use OldSound\RabbitMqBundle\Consumer\ConsumersRegistry;
 use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
-use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
+use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
 use OldSound\RabbitMqBundle\Declarations\BindingDeclaration;
 use OldSound\RabbitMqBundle\Declarations\ExchangeDeclaration;
 use OldSound\RabbitMqBundle\Declarations\QueueDeclaration;
@@ -267,7 +267,7 @@ class OldSoundRabbitMqExtension extends Extension
             // TODO $this->container->setAlias($serializerAlias, SerializerInterface::class);
             // $definition->addMethodCall('setSerializer', [new Reference($serializerAlias)]);}
             foreach($consumer['consumeQueues'] as $index => $consumeQueue) {
-                $queueConsumingDef = new Definition(QueueConsuming::class);
+                $queueConsumingDef = new Definition(ConsumeOptions::class);
                 $queueConsumingDef->setProperties([
                     'queueName' => $consumeQueue['queue'],
                     'receiver' => new Reference($consumeQueue['receiver']),

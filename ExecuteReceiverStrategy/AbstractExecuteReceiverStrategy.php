@@ -1,24 +1,25 @@
 <?php
 
-namespace OldSound\RabbitMqBundle\ExecuteCallbackStrategy;
+namespace OldSound\RabbitMqBundle\ExecuteReceiverStrategy;
 
+use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverExecutorInterface;
 use PhpAmqpLib\Message\AMQPMessage;
 
-abstract class AbstractExecuteReceiverStrategy implements ExecuteCallbackStrategyInterface
+abstract class AbstractExecuteReceiverStrategy implements ExecuteReceiverStrategyInterface
 {
-    /** @var MessagesProcessorInterface */
-    private $messagesProcessor;
+    /** @var ReceiverExecutorInterface */
+    private $receiverExecutor;
 
-    public function setMessagesProccessor(MessagesProcessorInterface $messagesProcessor)
+    public function setReceiverExecutor(ReceiverExecutorInterface $receiverExecutor)
     {
-        $this->messagesProcessor = $messagesProcessor;
+        $this->receiverExecutor = $receiverExecutor;
     }
 
     /**
      * @param AMQPMessage[] $meesages
      */
-    protected function proccessMessages(array $messages)
+    protected function execute(array $messages): array
     {
-        $this->messagesProcessor->processMessages($messages);
+        return $this->receiverExecutor->execute($messages);
     }
 }

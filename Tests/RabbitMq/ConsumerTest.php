@@ -190,7 +190,7 @@ class ConsumerTest extends TestCase
             ->willReturn($this->isInstanceOf(OnConsumeEvent::class));
 
         $consumer->setEventDispatcher($eventDispatcher);
-        $consumer->consume(1);
+        $consumer->startConsume(1);
     }
 
     public function testIdleTimeoutExitCode()
@@ -226,7 +226,7 @@ class ConsumerTest extends TestCase
                 throw new AMQPTimeoutException();
             });
 
-        $this->assertTrue(2 == $consumer->consume(1));
+        $this->assertTrue(2 == $consumer->startConsume(1));
     }
 
     public function testShouldAllowContinueConsumptionAfterIdleTimeout()
@@ -286,7 +286,7 @@ class ConsumerTest extends TestCase
         $consumer->setEventDispatcher($eventDispatcher);
 
         $this->expectException(AMQPTimeoutException::class);
-        $consumer->consume(10);
+        $consumer->startConsume(10);
     }
 
     public function testGracefulMaxExecutionTimeoutExitCode()
@@ -322,7 +322,7 @@ class ConsumerTest extends TestCase
                 throw new AMQPTimeoutException();
             });
 
-        $this->assertSame(10, $consumer->consume(1));
+        $this->assertSame(10, $consumer->startConsume(1));
     }
 
     public function testGracefulMaxExecutionWontWaitIfPastTheTimeout()
@@ -352,7 +352,7 @@ class ConsumerTest extends TestCase
         $amqpChannel->expects($this->never())
             ->method('wait');
 
-        $consumer->consume(1);
+        $consumer->startConsume(1);
     }
 
     public function testTimeoutWait()
@@ -394,7 +394,7 @@ class ConsumerTest extends TestCase
                 throw new AMQPTimeoutException();
             });
 
-        $consumer->consume(1);
+        $consumer->startConsume(1);
     }
 
     public function testTimeoutWaitWontWaitPastGracefulMaxExecutionTimeout()
@@ -431,7 +431,7 @@ class ConsumerTest extends TestCase
                 throw new AMQPTimeoutException();
             });
 
-        $consumer->consume(1);
+        $consumer->startConsume(1);
     }
 
     public function testTimeoutWaitWontWaitPastIdleTimeout()
@@ -469,6 +469,6 @@ class ConsumerTest extends TestCase
                 throw new AMQPTimeoutException();
             });
 
-        $this->assertEquals(2, $consumer->consume(1));
+        $this->assertEquals(2, $consumer->startConsume(1));
     }
 }

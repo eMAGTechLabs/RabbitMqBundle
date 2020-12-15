@@ -1,24 +1,25 @@
 <?php
 
-namespace OldSound\RabbitMqBundle\ExecuteCallbackStrategy;
+namespace OldSound\RabbitMqBundle\ExecuteReceiverStrategy;
 
-use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
+use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 
-class SimpleExecuteReveiverStrategy extends AbstractExecuteCallbackStrategy
+class SingleExecuteReceiverStrategy extends AbstractExecuteReceiverStrategy
 {
     /** @var AMQPMessage */
     private $processingMessage;
+
     public function canPrecessMultiMessages(): bool
     {
         return false;
     }
 
-    public function consumeCallback(AMQPMessage $message)
+    public function onConsumeCallback(AMQPMessage $message): ?array
     {
         $this->processingMessage = $message;
-        $this->proccessMessages([$this->processingMessage]);
+        return $this->execute([$this->processingMessage]);
     }
 
     public function onMessageProcessed(AMQPMessage $message)
@@ -36,7 +37,7 @@ class SimpleExecuteReveiverStrategy extends AbstractExecuteCallbackStrategy
     public function onStopConsuming()
     {
         if ($this->processingMessage) {
-            $this->proccessMessages([$this->processingMessage]);
+            $this->processMessages([$this->processingMessage]);
         }
     }
 }

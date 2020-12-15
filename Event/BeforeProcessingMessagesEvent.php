@@ -2,7 +2,7 @@
 
 namespace OldSound\RabbitMqBundle\Event;
 
-use OldSound\RabbitMqBundle\Declarations\QueueConsuming;
+use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use PhpAmqpLib\Message\AMQPMessage;
 
@@ -15,7 +15,7 @@ class BeforeProcessingMessagesEvent extends AbstractAMQPEvent
 {
     const NAME = 'old_sound_rabbit_mq.before_processing';
 
-    /** @var QueueConsuming */
+    /** @var ConsumeOptions */
     public $queueConsuming;
 
     /**
@@ -23,13 +23,8 @@ class BeforeProcessingMessagesEvent extends AbstractAMQPEvent
      *
      * @param AMQPMessage $AMQPMessage
      */
-    public function __construct(
-        Consumer $consumer, 
-        array $messages,
-        QueueConsuming $queueConsuming
-    )
+    public function __construct(array $messages, ConsumeOptions $queueConsuming)
     {
-        $this->consumer = $consumer;
         $this->messages = $messages;
         $this->queueConsuming = $queueConsuming;
     }

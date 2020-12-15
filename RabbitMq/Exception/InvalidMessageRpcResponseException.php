@@ -4,7 +4,7 @@
 namespace OldSound\RabbitMqBundle\RabbitMq\Exception;
 
 
-class InvalidMessageRpcResponseException extends RpcResponseException
+class InvalidMessageRpcResponseException extends \Exception
 {
 
 }

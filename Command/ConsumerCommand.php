@@ -103,7 +103,7 @@ class ConsumerCommand extends Command
             $this->declareForConsumer($consumer, $output);
         }
 
-        return $consumer->consume($this->amount);
+        return $consumer->startConsume($this->amount);
     }
 
     private function declareForConsumer(Consumer $consumer, OutputInterface $output)
@@ -113,8 +113,8 @@ class ConsumerCommand extends Command
             new ConsoleLogger($output)
         );
         $declarationRegistry = $this->container->get('old_sound_rabbit_mq.declaration_registry');
-        foreach($consumer->getQueueConsumings() as $queueConsuming) {
-            $declarator->declareForQueueDeclaration($queueConsuming->queueName, $declarationRegistry);
+        foreach($consumer->getConsumings() as $queueConsuming) {
+            $declarator->declareForQueueDeclaration($queueConsuming->queue, $declarationRegistry);
         }
     }
 }
