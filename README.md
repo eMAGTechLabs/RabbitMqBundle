@@ -895,7 +895,8 @@ How to run the following batch consumer:
     $ ./bin/console rabbitmq:batch:consumer batch_basic_consumer -w
 ```
 
-Important: BatchConsumers will not have the -m|messages option available
+Important: BatchConsumers can also have the -m|messages option available if you want to only consume a specific number of messages and then stop the consumer.
+! Give the number of the messages only if you want the consumer to stop after those messages were consumed.! 
 
 ### STDIN Producer ###
 

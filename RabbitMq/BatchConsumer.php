@@ -70,6 +70,9 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
      */
     protected $gracefulMaxExecutionDateTime;
 
+    /** @var int */
+    private $target;
+
     /**
      * @param \DateTime|null $dateTime
      */
@@ -98,8 +101,10 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
         return $this;
     }
 
-    public function consume()
+    public function consume(int $msgAmount = 0): ?int
     {
+        $this->target = $msgAmount;
+
         $this->setupConsumer();
 
         while (count($this->getChannel()->callbacks)) {
@@ -211,6 +216,8 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
             // Remove message from queue only if callback return not false
             $this->getMessageChannel($deliveryTag)->basic_ack($deliveryTag);
         }
+
+        $this->consumed++;
     }
 
     /**
@@ -359,7 +366,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
             pcntl_signal_dispatch();
         }
 
-        if ($this->forceStop) {
+        if ($this->forceStop || ($this->consumed == $this->target && $this->target > 0)) {
             $this->stopConsuming();
         }
 

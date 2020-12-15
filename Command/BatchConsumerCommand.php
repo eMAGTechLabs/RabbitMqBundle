@@ -16,6 +16,9 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
      */
     protected $consumer;
 
+    /** @var string */
+    protected $amount;
+
     public function stopConsumer()
     {
         if ($this->consumer instanceof BatchConsumer) {
@@ -36,6 +39,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
         $this
             ->setName('rabbitmq:batch:consumer')
             ->addArgument('name', InputArgument::REQUIRED, 'Consumer Name')
+            ->addOption('messages', 'm', InputOption::VALUE_OPTIONAL, 'Messages to consume', 0)
             ->addOption('route', 'r', InputOption::VALUE_OPTIONAL, 'Routing Key', '')
             ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process', null)
             ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Enable Debugging')
@@ -74,9 +78,15 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
             define('AMQP_DEBUG', (bool) $input->getOption('debug'));
         }
 
+        $this->amount = (int)$input->getOption('messages');
+
+        if (0 > (int) $this->amount) {
+            throw new \InvalidArgumentException("The -m option should be null or greater than 0");
+        }
+
         $this->initConsumer($input);
 
-        return $this->consumer->consume();
+        return $this->consumer->consume((int)$this->amount);
     }
 
     /**
