@@ -39,7 +39,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
         $this
             ->setName('rabbitmq:batch:consumer')
             ->addArgument('name', InputArgument::REQUIRED, 'Consumer Name')
-            ->addOption('batches', 'b', InputOption::VALUE_OPTIONAL, 'Number batches to consume', 0)
+            ->addOption('batches', 'b', InputOption::VALUE_OPTIONAL, 'Number of batches to consume', 0)
             ->addOption('route', 'r', InputOption::VALUE_OPTIONAL, 'Routing Key', '')
             ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process', null)
             ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Enable Debugging')
