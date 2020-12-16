@@ -106,7 +106,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
         return $this;
     }
 
-    public function consume(int $batchAmount = 0): ?int
+    public function consume(int $batchAmount = 0)
     {
         $this->target = $batchAmount;
 
