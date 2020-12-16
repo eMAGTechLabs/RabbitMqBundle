@@ -16,7 +16,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
      */
     protected $consumer;
 
-    /** @var string */
+    /** @var int */
     protected $amount;
 
     public function stopConsumer()
@@ -39,7 +39,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
         $this
             ->setName('rabbitmq:batch:consumer')
             ->addArgument('name', InputArgument::REQUIRED, 'Consumer Name')
-            ->addOption('messages', 'm', InputOption::VALUE_OPTIONAL, 'Messages to consume', 0)
+            ->addOption('batches', 'b', InputOption::VALUE_OPTIONAL, 'Number batches to consume', 0)
             ->addOption('route', 'r', InputOption::VALUE_OPTIONAL, 'Routing Key', '')
             ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process', null)
             ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Enable Debugging')
@@ -56,7 +56,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
      *
      * @return  integer                         0 if everything went fine, or an error code
      *
-     * @throws  \InvalidArgumentException       When the number of messages to consume is less than 0
+     * @throws  \InvalidArgumentException       When the number of batches to consume is less than 0
      * @throws  \BadFunctionCallException       When the pcntl is not installed and option -s is true
      */
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -78,10 +78,10 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
             define('AMQP_DEBUG', (bool) $input->getOption('debug'));
         }
 
-        $this->amount = (int) $input->getOption('messages');
+        $this->amount = (int) $input->getOption('batches');
 
         if (0 > $this->amount) {
-            throw new \InvalidArgumentException("The -m option should be null or greater than 0");
+            throw new \InvalidArgumentException("The -b option should be null or greater than 0");
         }
 
         $this->initConsumer($input);

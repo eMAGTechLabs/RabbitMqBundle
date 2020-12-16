@@ -62,6 +62,11 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
     /**
      * @var int
      */
+    protected $batchAmount = 0;
+
+    /**
+     * @var int
+     */
     protected $consumed = 0;
 
     /**
@@ -101,9 +106,9 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
         return $this;
     }
 
-    public function consume(int $msgAmount = 0): ?int
+    public function consume(int $batchAmount = 0): ?int
     {
-        $this->target = $msgAmount;
+        $this->target = $batchAmount;
 
         $this->setupConsumer();
 
@@ -122,6 +127,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
             } catch (AMQPTimeoutException $e) {
                 if (!$this->isEmptyBatch()) {
                     $this->batchConsume();
+                    $this->maybeStopConsumer();
                 } elseif ($this->keepAlive === true) {
                     continue;
                 } elseif (null !== $this->getIdleTimeoutExitCode()) {
@@ -179,6 +185,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
             throw $e;
         }
 
+        $this->batchAmount++;
         $this->resetBatch();
     }
 
@@ -217,7 +224,6 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
             $this->getMessageChannel($deliveryTag)->basic_ack($deliveryTag);
         }
 
-        $this->consumed++;
     }
 
     /**
@@ -366,7 +372,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
             pcntl_signal_dispatch();
         }
 
-        if ($this->forceStop || ($this->consumed == $this->target && $this->target > 0)) {
+        if ($this->forceStop || ($this->batchAmount == $this->target && $this->target > 0)) {
             $this->stopConsuming();
         }
 
