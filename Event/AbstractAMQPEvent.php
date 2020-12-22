@@ -10,13 +10,16 @@ abstract class AbstractAMQPEvent extends ContractsBaseEvent
     /** @var AMQPMessage[] */
     protected $messages;
 
-    protected $stoppingConsumer = false;
+    /** @var bool */
+    private $forceStop = false;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function isStoppingConsumer(): bool
+    public function isForceStop(): bool
     {
-        return $this->stoppingConsumer;
+        return $this->forceStop;
+    }
+
+    public function setForceStop(bool $forceStop)
+    {
+        $this->forceStop = $forceStop;
     }
 }

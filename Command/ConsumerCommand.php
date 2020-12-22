@@ -62,7 +62,7 @@ class ConsumerCommand extends Command
         }
 
         /** @var Consumer $consumer */
-        $consumer = $this->container->get($alias);
+        $consumer = $this->container->get($alias); // TODO create by fly?
         
         if (
             !is_null($input->getOption('memory-limit')) &&
@@ -113,8 +113,8 @@ class ConsumerCommand extends Command
             new ConsoleLogger($output)
         );
         $declarationRegistry = $this->container->get('old_sound_rabbit_mq.declaration_registry');
-        foreach($consumer->getConsumings() as $queueConsuming) {
-            $declarator->declareForQueueDeclaration($queueConsuming->queue, $declarationRegistry);
+        foreach($consumer->getConsumeOptions() as $queueConsuming) {
+            $declarator->declareForQueueDeclaration($queueConsuming->options->queue, $declarationRegistry);
         }
     }
 }

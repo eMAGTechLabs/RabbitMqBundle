@@ -2,7 +2,6 @@
 
 namespace OldSound\RabbitMqBundle\Event;
 
-use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use PhpAmqpLib\Message\AMQPMessage;
 
 /**
@@ -19,9 +18,8 @@ class AfterProcessingMessagesEvent extends AbstractAMQPEvent
      *
      * @param AMQPMessage $AMQPMessage
      */
-    public function __construct(Consumer $consumer, array $messages)
+    public function __construct(array $messages)
     {
-        $this->consumer = $consumer;
         $this->messages = $messages;
     }
 }

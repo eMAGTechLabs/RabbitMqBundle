@@ -4,17 +4,13 @@ namespace OldSound\RabbitMqBundle\RabbitMq;
 
 use OldSound\RabbitMqBundle\Declarations\BatchConsumeOptions;
 use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
-use OldSound\RabbitMqBundle\Declarations\RpcConsumeOptions;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\Event\OnIdleEvent;
 use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\BatchExecuteReceiverStrategy;
+use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\ExecuteReceiverStrategyInterface;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\SingleExecuteReceiverStrategy;
-use OldSound\RabbitMqBundle\ReceiverExecutor\BatchReceiverExecutor;
 use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverExecutorDecorator;
-use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverExecutorInterface;
-use OldSound\RabbitMqBundle\ReceiverExecutor\ReplyReceiverExecutor;
-use OldSound\RabbitMqBundle\ReceiverExecutor\SingleReceiverExecutor;
 use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
@@ -31,10 +27,14 @@ class Consumer
 
     /** @var AMQPChannel */
     protected $channel;
-    /** @var Consuming[] */
-    protected $consumings = [];
-    /** @var string[] */
-    protected $consumerTags = [];
+    /** @var ConsumeOptions[] */
+    protected $consumeOptions = [];
+
+    /** @var callable[] */
+    protected $receivers;
+    /** @var ExecuteReceiverStrategyInterface[] */
+    protected $executeReceiverStrategies;
+
     /** @var int|null */
     protected $target;
     /** @var int */
@@ -42,7 +42,7 @@ class Consumer
     /** @var bool */
     protected $forceStop = false;
     /**
-     * Importrant! If true - then channel can not be used from somewhere else
+     * Important! If true - then channel can not be used from somewhere else
      * @var bool
      */
     public $multiAck = false;
@@ -75,91 +75,54 @@ class Consumer
 
     protected function setup(): Consumer
     {
-        foreach($this->consumings as $index => $consuming) {
-            $this->channel->basic_qos($consuming->options->qosPrefetchSize, $consuming->options->qosPrefetchCount, false);
+        foreach($this->consumeOptions as $index => $options) {
+            $this->channel->basic_qos($options->qosPrefetchSize, $options->options->qosPrefetchCount, false);
 
-            $options = $consuming->options;
-            $consuming->consumerTag ? $consuming->consumerTag : sprintf("PHPPROCESS_%s_%s_%s", gethostname(), getmypid(), $index);
+            $options->consumerTag = $options->consumerTag ?? sprintf("PHPPROCESS_%s_%s_%s", gethostname(), getmypid(), $index);
+
+            $executeReceiverStrategy = $options instanceof BatchConsumeOptions ?
+                new BatchExecuteReceiverStrategy($options->batchCount) :
+                new SingleExecuteReceiverStrategy();
+
+            $executeReceiverStrategies[$index] = $executeReceiverStrategy;
+
+            $receiverExecutor = new ReceiverExecutorDecorator($options, $this->logger); // TODO factory->create()
+            $executeReceiverStrategy->setReceiver($this->receivers[$index], $receiverExecutor);
+
             $consumerTag = $this->channel->basic_consume(
                 $options->queue,
-                $consuming->consumerTag,
+                $options->consumerTag,
                 $options->noLocal,
                 $options->noAck,
                 $options->exclusive,
                 false,
-                function (AMQPMessage $message) use ($consuming) {
-                    $flags = $consuming->executeReceiverStrategy->onConsumeCallback($message);
+                function (AMQPMessage $message) use ($executeReceiverStrategy) {
+                    $flags = $executeReceiverStrategy->onConsumeCallback($message);
                     if ($flags) {
-                        $this->handleProcessMessages($flags, $consuming);
-                        foreach ($messages as $message) {
-                            $executeReceiverStrategy->onMessageProcessed($message);
-                        }
+                        $this->handleProcessMessages($flags);
+                        $executeReceiverStrategy->onMessageProcessed($message);
                     }
 
                     $this->maybeStopConsumer();
                 });
 
-            $consuming->consumerTag = $consumerTag;
+            $options->consumerTag = $consumerTag;
         }
 
         return $this;
     }
 
-    /**
-     * @param iterable|ConsumeOptions[] $queueConsumings
-     */
-    public function consumeQueues(iterable $queueConsumings)
+    public function consumeQueue(ConsumeOptions $consumeOptions, callable $receiver): Consumer
     {
-        foreach ($queueConsumings as $queueConsuming) {
-            $this->consumeQueue($queueConsuming);
-        }
-    }
-
-    private function createStrategyByOptions(ConsumeOptions $consumeOptions): ExecuteReceiverStrategyInterface
-    {
-        if ($consumeOptions instanceof BatchConsumeOptions) {
-            return new BatchExecuteReceiverStrategy($consumeOptions->batchCount);
-        }
-        return new SingleExecuteReceiverStrategy();
-    }
-
-    private function createReceiverExecutorByOptions(ConsumeOptions $consumeOptions): ReceiverExecutorInterface
-    {
-        if ($consumeOptions instanceof BatchConsumeOptions) {
-            $receiverExecutor = new BatchReceiverExecutor();
-        } else if ($consumeOptions instanceof RpcConsumeOptions) {
-            $receiverExecutor = new ReplyReceiverExecutor($consumeOptions);
-        } else {
-            $receiverExecutor = new SingleReceiverExecutor();
-        }
-
-        return $receiverExecutor;
-    }
-
-    public function consumeQueue(ConsumeOptions $consumerOptions, $receiver): Consumer
-    {
-        $executeReceiverStrategy = $this->createStrategyByOptions($consumerOptions);
-        $receiverExecutor = $this->createReceiverExecutorByOptions($consumerOptions);
-        if (!$receiverExecutor->support($receiver)) {
-            throw new \InvalidArgumentException('sdfs');
-        }
-
-        $consuming = new Consuming($consumerOptions, $executeReceiverStrategy, $receiverExecutor, $receiver);
-        $executeReceiverStrategy->setReceiverExecutor(
-            new ReceiverExecutorDecorator($consuming, $this->logger)
-        );
-
-        $this->consumings[] = $consuming;
+        $this->consumeOptions[] = $consumeOptions;
+        $this->receivers = $receiver;
 
         return $this;
     }
 
-    /**
-     * @return ConsumeOptions[]
-     */
-    public function getConsumings(): array
+    public function getConsumeOptions(): array
     {
-        return $this->consumings;
+        return $this->consumeOptions;
     }
 
     /**
@@ -178,7 +141,11 @@ class Consumer
 
         $this->lastActivityDateTime = new \DateTime();
         while ($this->channel->is_consuming()) {
-            $this->dispatchEvent(OnConsumeEvent::NAME, new OnConsumeEvent($this));
+            $event = new OnConsumeEvent();
+            $this->dispatchEvent($event, OnConsumeEvent::NAME);
+            if ($event->isForceStop()) {
+                break;
+            }
             $this->maybeStopConsumer();
 
             if ($this->forceStop) {
@@ -200,17 +167,14 @@ class Consumer
                     break;
                 }
             } catch (AMQPTimeoutException $e) {
-                foreach($this->executeReceiverStrategies as $executeReceiverStrategy) {
-                    $executeReceiverStrategy->onCatchTimeout($e);
-                }
                 $now = new \DateTime();
                 if ($this->gracefulMaxExecutionDateTime && $this->gracefulMaxExecutionDateTime <= $now) {
                     return $this->gracefulMaxExecutionTimeoutExitCode;
                 }
 
                 if ($this->idleTimeout && ($this->lastActivityDateTime->getTimestamp() + $this->idleTimeout <= $now->getTimestamp())) {
-                    $idleEvent = new OnIdleEvent($this);
-                    $this->dispatchEvent(OnIdleEvent::NAME, $idleEvent);
+                    $idleEvent = new OnIdleEvent();
+                    $this->dispatchEvent($idleEvent, OnIdleEvent::NAME);
 
                     if ($idleEvent->isForceStop()) {
                         if (null !== $this->idleTimeoutExitCode) {
@@ -226,7 +190,7 @@ class Consumer
         return 0;
     }
 
-    private function handleProcessMessages(array $flags, Consuming $consuming)
+    private function handleProcessMessages(array $flags)
     {
         $ack = !array_search(fn ($reply) => $reply !== ReceiverInterface::MSG_ACK, $flags, true);
         if ($this->multiAck && count($flags) > 1 && $ack) {
@@ -273,11 +237,10 @@ class Consumer
             }
         }
 
-        foreach ($this->consumerTags as $consumerTag) {
-            $this->channel->basic_cancel($consumerTag, false, true);
+        foreach ($this->consumeOptions as $options) {
+            $this->channel->basic_cancel($options->consumerTag, false, true);
+            $options->consumerTag = null;
         }
-
-        $this->consumerTags = [];
     }
 
     /**

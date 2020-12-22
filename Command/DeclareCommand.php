@@ -63,7 +63,7 @@ class DeclareCommand extends Command
             //$queues[] = $producer->exchange;
         }
         
-        $this->declarationsRegistry->exchanges
+        //$this->declarationsRegistry->exchanges
 
         $declarator = new Declarator($channel);
         // $declarator->declareExchanges($exchanges);

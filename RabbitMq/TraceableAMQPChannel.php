@@ -22,7 +22,7 @@ class TraceableAMQPChannel extends AMQPChannel
         parent::basic_publish($msg, $exchange, $routingKey, $mandatory, $immediate, $ticket);
     }
 
-    public function getTracedPublications()
+    public function getTracedPublications(): array
     {
         return $this->tracedPublications;
     }

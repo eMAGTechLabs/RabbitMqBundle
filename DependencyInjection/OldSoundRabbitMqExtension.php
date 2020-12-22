@@ -5,6 +5,7 @@ namespace OldSound\RabbitMqBundle\DependencyInjection;
 use OldSound\RabbitMqBundle\Consumer\ConsumersRegistry;
 use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
 use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
+use OldSound\RabbitMqBundle\Declarations\BatchConsumeOptions;
 use OldSound\RabbitMqBundle\Declarations\BindingDeclaration;
 use OldSound\RabbitMqBundle\Declarations\ExchangeDeclaration;
 use OldSound\RabbitMqBundle\Declarations\QueueDeclaration;
@@ -267,20 +268,22 @@ class OldSoundRabbitMqExtension extends Extension
             // TODO $this->container->setAlias($serializerAlias, SerializerInterface::class);
             // $definition->addMethodCall('setSerializer', [new Reference($serializerAlias)]);}
             foreach($consumer['consumeQueues'] as $index => $consumeQueue) {
-                $queueConsumingDef = new Definition(ConsumeOptions::class);
+                $isBatch = isset($consumeQueue['batch_count']);
+                $queueConsumingDef = new Definition($isBatch ? BatchConsumeOptions::class : ConsumeOptions::class);
                 $queueConsumingDef->setProperties([
-                    'queueName' => $consumeQueue['queue'],
-                    'receiver' => new Reference($consumeQueue['receiver']),
-                    //'qosPrefetchSize' => $consumeQueue['qos_prefetch_size'],
+                    'queue' => $consumeQueue['queue'],
                     'qosPrefetchCount' => $consumeQueue['qos_prefetch_count'],
                     'batchCount' => $consumeQueue['batch_count'] ?? null,
-                    //'consumerTag' => $consumeQueue['consumer_tag'],
-                    //'noLocal' => $consumeQueue['no_local'],
                 ]);
+                if ($isBatch) {
+                    $queueConsumingDef->setProperty('batchCount', $consumeQueue['batch_count']);
+                }
 
                 $queueConsumingDef->addTag(sprintf('old_sound_rabbit_mq.%s.queue_consuming', $connectionName));
                 $this->container->setDefinition(sprintf('old_sound_rabbit_mq.%s.queue_consuming.%s', $connectionName, $consumerName), $queueConsumingDef);
-                $definition->addMethodCall('consumeQueue', [$queueConsumingDef]);
+
+                $receiver = new Reference($consumeQueue['receiver']);
+                $definition->addMethodCall('consumeQueue', [$queueConsumingDef, $receiver]);
             }
 
             $definition->addMethodCall('setEventDispatcher', [

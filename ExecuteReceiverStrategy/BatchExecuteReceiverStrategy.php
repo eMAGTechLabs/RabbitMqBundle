@@ -19,11 +19,6 @@ class BatchExecuteReceiverStrategy extends AbstractExecuteReceiverStrategy
         $this->batchCount = $batchCount;
     }
 
-    public function canPrecessMultiMessages(): bool
-    {
-        return true;
-    }
-
     public function onConsumeCallback(AMQPMessage $message): ?array
     {
         $this->messagesBatch[$message->getDeliveryTag()] = $message;
@@ -31,24 +26,25 @@ class BatchExecuteReceiverStrategy extends AbstractExecuteReceiverStrategy
         if ($this->isBatchCompleted()) {
             return $this->execute($this->messagesBatch);
         }
+        return null;
     }
 
     public function onMessageProcessed(AMQPMessage $message)
     {
-        unset($this->messagesBatch[array_search($message, $this->messagesBatch, true)]);
-    }
-
-    public function onCatchTimeout(AMQPTimeoutException $e)
-    {
-        if (!$this->isBatchEmpty()) {
-            $this->processMessages($this->messagesBatch);
+        if ($this->isBatchEmpty()) {
+            throw new \InvalidArgumentException('TODO');
         }
+        if ($message !== $this->messagesBatch[count($this->messagesBatch) - 1]) {
+            throw new \InvalidArgumentException('TODO');
+        }
+
+        $this->messagesBatch = [];
     }
 
     public function onStopConsuming()
     {
         if (!$this->isBatchEmpty()) {
-            $this->processMessages($this->messagesBatch);
+            $this->execute($this->messagesBatch);
         }
     }
 

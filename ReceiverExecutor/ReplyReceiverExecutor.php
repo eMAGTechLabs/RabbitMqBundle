@@ -17,15 +17,8 @@ class ReplyReceiverExecutor implements ReceiverExecutorInterface
         $this->options = $options;
     }
 
-    /**
-     * @param $receiver ReplyReceiverInterface
-     */
-    public function execute(array $messages, $receiver): array
+    public function execute(array $messages, callable $receiver): array
     {
-        if (!$this->support($receiver)) {
-            throw new \InvalidArgumentException('TOOD');
-        }
-
         if (count($messages) !== 1) {
             throw new \InvalidArgumentException('todo');
         }
@@ -37,7 +30,7 @@ class ReplyReceiverExecutor implements ReceiverExecutorInterface
         }
 
         try {
-            $reply = $receiver->execute($message);
+            $reply = $receiver($message);
         } catch (ReceiverException $exception) {
             return [$exception->getCode()];
         }
@@ -53,10 +46,5 @@ class ReplyReceiverExecutor implements ReceiverExecutorInterface
             $this->options->correlationIdProperty => $correlationId,
         ]);
         $channel->basic_publish($message , '', $replyTo);
-    }
-
-    public function support($receiver): bool
-    {
-        return $receiver instanceof ReplyReceiverInterface;
     }
 }

@@ -7,12 +7,15 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 abstract class AbstractExecuteReceiverStrategy implements ExecuteReceiverStrategyInterface
 {
+    /** @var callable */
+    private $receiver;
     /** @var ReceiverExecutorInterface */
-    private $receiverExecutor;
+    private $executor;
 
-    public function setReceiverExecutor(ReceiverExecutorInterface $receiverExecutor)
+    public function setReceiver(callable $receiver, ReceiverExecutorInterface $executor)
     {
-        $this->receiverExecutor = $receiverExecutor;
+        $this->receiver = $receiver;
+        $this->executor = $executor;
     }
 
     /**
@@ -20,6 +23,6 @@ abstract class AbstractExecuteReceiverStrategy implements ExecuteReceiverStrateg
      */
     protected function execute(array $messages): array
     {
-        return $this->receiverExecutor->execute($messages);
+        return $this->executor->execute($messages, $this->receiver);
     }
 }

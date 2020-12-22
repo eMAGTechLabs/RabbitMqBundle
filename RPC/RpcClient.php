@@ -9,8 +9,8 @@ use OldSound\RabbitMqBundle\Declarations\QueueDeclaration;
 use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy;
 use OldSound\RabbitMqBundle\Producer\ProducerInterface;
 use OldSound\RabbitMqBundle\RabbitMq\Exception\RpcResponseException;
-use OldSound\RabbitMqBundle\Serializer\JsonMessageBodySerializer;
-use OldSound\RabbitMqBundle\Serializer\MessageBodySerializerInterface;
+use OldSound\RabbitMqBundle\Serializer\JsonMessageSerializer;
+use OldSound\RabbitMqBundle\Serializer\MessageSerializerInterface;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -28,7 +28,7 @@ class RpcClient implements BatchReceiverInterface
 
     /** @var QueueDeclaration */
     private $anonRepliesQueue;
-    /** @var MessageBodySerializerInterface[] */
+    /** @var MessageSerializerInterface[] */
     private $serializers;
 
     /** @var int */
@@ -42,7 +42,7 @@ class RpcClient implements BatchReceiverInterface
         int $expiration = 10000
     ) {
         $this->channel = $channel;
-        $this->serializer = $serializer ?? new JsonMessageBodySerializer();
+        $this->serializer = $serializer ?? new JsonMessageSerializer();
         $this->expiration = $expiration;
     }
 
@@ -70,7 +70,7 @@ class RpcClient implements BatchReceiverInterface
         return $anonQueueDeclaration;
     }
 
-    public function addRequest($msgBody, $rpcQueue, MessageBodySerializerInterface $serializer = null)
+    public function addRequest($msgBody, $rpcQueue, MessageSerializerInterface $serializer = null)
     {
         if (!$this->anonRepliesQueue) {
             throw new \LogicException('no init anonRepliesQueue');
@@ -79,7 +79,7 @@ class RpcClient implements BatchReceiverInterface
         $correlationId = $this->requests;
         $this->serializers[$correlationId] = $serializer;
 
-        $serializer = $serializer ?? new JsonMessageBodySerializer();
+        $serializer = $serializer ?? new JsonMessageSerializer();
 
         $replyToQueue = $this->anonRepliesQueue->name; // 'amq.rabbitmq.reply-to';
         $msg = new AMQPMessage($serializer->serialize($msgBody, 'json'), [
@@ -104,7 +104,7 @@ class RpcClient implements BatchReceiverInterface
 
     /**
      * @param $name
-     * @param MessageBodySerializerInterface $serializer
+     * @param MessageSerializerInterface $serializer
      * @return array|AMQPMessage[]
      */
     public function getReplies($name): array

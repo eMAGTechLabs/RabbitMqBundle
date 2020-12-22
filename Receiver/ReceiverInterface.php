@@ -21,12 +21,4 @@ interface ReceiverInterface
 
     /** Flag for consumers that wants to handle ACKs on their own*/
     const MSG_ACK_SENT = -2;
-
-    /**
-     * @param AMQPMessage $message
-     * @return int
-     * @throws ReceiverException
-     * @throws NotReadyReceiveException
-     */
-    public function execute(AMQPMessage $message): int;
 }

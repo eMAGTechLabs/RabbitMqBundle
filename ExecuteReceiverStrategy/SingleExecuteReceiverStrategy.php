@@ -11,11 +11,6 @@ class SingleExecuteReceiverStrategy extends AbstractExecuteReceiverStrategy
     /** @var AMQPMessage */
     private $processingMessage;
 
-    public function canPrecessMultiMessages(): bool
-    {
-        return false;
-    }
-
     public function onConsumeCallback(AMQPMessage $message): ?array
     {
         $this->processingMessage = $message;
@@ -30,14 +25,10 @@ class SingleExecuteReceiverStrategy extends AbstractExecuteReceiverStrategy
         $this->processingMessage = null;
     }
 
-    public function onCatchTimeout(AMQPTimeoutException $e)
-    {
-    }
-
     public function onStopConsuming()
     {
         if ($this->processingMessage) {
-            $this->processMessages([$this->processingMessage]);
+            $this->execute([$this->processingMessage]);
         }
     }
 }

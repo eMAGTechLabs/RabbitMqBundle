@@ -7,17 +7,11 @@ use OldSound\RabbitMqBundle\RabbitMq\Exception\StopConsumerException;
 interface ReceiverExecutorInterface
 {
     /**
-     * @param AMQPMessage[] $messages
-     * @param mixed $receiver
+     * @param array $messages
+     * @param callable $receiver
      * @return int[] Flags
      *
      * @throws StopConsumerException
      */
-    public function execute(array $messages, $receiver): array;
-
-    /**
-     * @param object $receiver
-     * @return bool
-     */
-    public function support($receiver): bool;
+    public function execute(array $messages, callable $receiver): array;
 }

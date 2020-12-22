@@ -8,15 +8,12 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 interface ExecuteReceiverStrategyInterface
 {
-    public function setReceiverExecutor(ReceiverExecutorInterface $receiverExecutor);
-
-    public function canPrecessMultiMessages(): bool;
+    public function setReceiver(callable $receiver, ReceiverExecutorInterface $executor);
 
     public function onConsumeCallback(AMQPMessage $message): ?array;
 
     public function onMessageProcessed(AMQPMessage $message);
 
-    public function onCatchTimeout(AMQPTimeoutException $e);
 
     public function onStopConsuming();
 }

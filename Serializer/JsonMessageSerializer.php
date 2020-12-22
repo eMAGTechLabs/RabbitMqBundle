@@ -9,7 +9,7 @@ use OldSound\RabbitMqBundle\RabbitMq\RpcReponse;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
 
-class JsonMessageBodySerializer implements MessageBodySerializerInterface
+class JsonMessageSerializer implements MessageSerializerInterface
 {
     /** @var SerializerInterface */
     private $serializer;
@@ -28,17 +28,18 @@ class JsonMessageBodySerializer implements MessageBodySerializerInterface
     public function serialize($body): string
     {
         if ($body instanceof RpcResponseException) {
-            return json_encode([
+            return $this->serializer->serialize([
                 'error_code' => $body->getCode(),
                 'message' => $body->getMessage(),
-            ]);
+            ], 'json');
         }
-        return json_encode($body);// $this->serializer->serialize($body, 'json');
+
+        return $this->serializer->serialize($body, 'json');
     }
 
     public function deserialize(string $body)
     {
-        $data = json_decode($body, true);
+        $data = $this->serializer->denormalize($body, 'json');
         if (isset($data['error_code'])) {
             return new RpcResponseException(new RpcResponseException($data['message'], $data['error_code']));
         } else if ($this->deserializeType) {

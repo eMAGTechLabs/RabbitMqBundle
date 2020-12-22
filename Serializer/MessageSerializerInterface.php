@@ -5,7 +5,7 @@ namespace OldSound\RabbitMqBundle\Serializer;
 use OldSound\RabbitMqBundle\RabbitMq\Exception\RpcResponseException;
 use OldSound\RabbitMqBundle\RabbitMq\RpcReponse;
 
-interface MessageBodySerializerInterface
+interface MessageSerializerInterface
 {
     /**
      * @param mixed|RpcReponse|RpcResponseException $body

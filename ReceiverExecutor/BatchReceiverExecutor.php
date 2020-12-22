@@ -3,20 +3,11 @@
 
 namespace OldSound\RabbitMqBundle\ReceiverExecutor;
 
-use OldSound\RabbitMqBundle\Declarations\BatchConsumeOptions;
-use OldSound\RabbitMqBundle\Receiver\BatchReceiverInterface;
-
 class BatchReceiverExecutor implements ReceiverExecutorInterface
 {
-    /**
-     * @param BatchReceiverInterface $receiver
-     */
-    public function execute($messages, $receiver): array
+    public function execute(array $messages, callable $receiver): array
     {
-        if (!$this->support($receiver)) {
-            throw new \InvalidArgumentException('TOOD');
-        }
-        $flags = $receiver->batchExecute($messages);
+        $flags = $receiver($messages);
 
         if (!is_array($flags)) { // flat flag for each delivery tag
             $flag = $flags;
@@ -31,10 +22,5 @@ class BatchReceiverExecutor implements ReceiverExecutorInterface
         }
 
         return $flags;
-    }
-
-    public function support($receiver): bool
-    {
-        return $receiver instanceof BatchReceiverInterface;
     }
 }
