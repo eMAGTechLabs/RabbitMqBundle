@@ -4,14 +4,20 @@ namespace OldSound\RabbitMqBundle\RabbitMq;
 
 use OldSound\RabbitMqBundle\Declarations\BatchConsumeOptions;
 use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
+use OldSound\RabbitMqBundle\Declarations\ConsumerDef;
+use OldSound\RabbitMqBundle\Declarations\RpcConsumeOptions;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\Event\OnIdleEvent;
 use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\BatchExecuteReceiverStrategy;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\ExecuteReceiverStrategyInterface;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\SingleExecuteReceiverStrategy;
+use OldSound\RabbitMqBundle\ReceiverExecutor\BatchReceiverExecutor;
 use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverExecutorDecorator;
 use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
+use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverExecutorInterface;
+use OldSound\RabbitMqBundle\ReceiverExecutor\ReplyReceiverExecutor;
+use OldSound\RabbitMqBundle\ReceiverExecutor\SingleReceiverExecutor;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
@@ -25,10 +31,10 @@ class Consumer
     use LoggerAwareTrait;
     use EventDispatcherAwareTrait;
 
-    /** @var AMQPChannel */
+    /** @var ConsumerDef */
+    protected $consumerDef;
+    /** @var \AMQPChannel */
     protected $channel;
-    /** @var ConsumeOptions[] */
-    protected $consumeOptions = [];
 
     /** @var callable[] */
     protected $receivers;
@@ -62,21 +68,16 @@ class Consumer
     /** @var \DateTime|null */
     public $lastActivityDateTime;
 
-    public function __construct(AMQPChannel $channel)
+    public function __construct(ConsumerDef $consumerDef)
     {
-        $this->channel = $channel;
+        $this->consumerDef = $consumerDef;
         $this->logger = new NullLogger();
-    }
-
-    public function getChannel(): AMQPChannel
-    {
-        return $this->channel;
     }
 
     protected function setup(): Consumer
     {
-        foreach($this->consumeOptions as $index => $options) {
-            $this->channel->basic_qos($options->qosPrefetchSize, $options->options->qosPrefetchCount, false);
+        foreach($this->consumerDef->consumeOptions as $index => $options) {
+            $this->channel->basic_qos($options->qosPrefetchSize, $options->qosPrefetchCount, false);
 
             $options->consumerTag = $options->consumerTag ?? sprintf("PHPPROCESS_%s_%s_%s", gethostname(), getmypid(), $index);
 
@@ -86,8 +87,13 @@ class Consumer
 
             $executeReceiverStrategies[$index] = $executeReceiverStrategy;
 
-            $receiverExecutor = new ReceiverExecutorDecorator($options, $this->logger); // TODO factory->create()
-            $executeReceiverStrategy->setReceiver($this->receivers[$index], $receiverExecutor);
+            // TODO chining
+            $receiverExecutor = new ReceiverExecutorDecorator($this->createExecutor($options), $this->consumerDef, $options);
+            $receiverExecutor->setLogger($this->logger);
+            if ($this->eventDispatcher) {
+                $receiverExecutor->setEventDispatcher($this->eventDispatcher);
+            }
+            $executeReceiverStrategy->setReceiver($options->receiver, $receiverExecutor);
 
             $consumerTag = $this->channel->basic_consume(
                 $options->queue,
@@ -98,7 +104,7 @@ class Consumer
                 false,
                 function (AMQPMessage $message) use ($executeReceiverStrategy) {
                     $flags = $executeReceiverStrategy->onConsumeCallback($message);
-                    if ($flags) {
+                    if (null !== $flags) {
                         $this->handleProcessMessages($flags);
                         $executeReceiverStrategy->onMessageProcessed($message);
                     }
@@ -112,33 +118,27 @@ class Consumer
         return $this;
     }
 
-    public function consumeQueue(ConsumeOptions $consumeOptions, callable $receiver): Consumer
+    private function createExecutor(ConsumeOptions $options): ReceiverExecutorInterface
     {
-        $this->consumeOptions[] = $consumeOptions;
-        $this->receivers = $receiver;
-
-        return $this;
-    }
-
-    public function getConsumeOptions(): array
-    {
-        return $this->consumeOptions;
+        if ($options instanceof BatchConsumeOptions) {
+            return new BatchReceiverExecutor();
+        } else if ($options instanceof RpcConsumeOptions) {
+            return new ReplyReceiverExecutor($options);
+        } else {
+            return new SingleReceiverExecutor();
+        }
     }
 
     /**
-     * Consume the message
-     * @param   int     $msgAmount
-     * @return  int
-     *
      * @throws  AMQPTimeoutException
      */
-    public function startConsume(int $msgAmount = null)
+    public function startConsume(int $msgAmount = null): int
     {
         $this->target = $msgAmount;
         $this->consumed = 0;
 
+        $this->channel = AMQPConnectionFactory::getChannelFromConnection($this->consumerDef->connection);
         $this->setup();
-
         $this->lastActivityDateTime = new \DateTime();
         while ($this->channel->is_consuming()) {
             $event = new OnConsumeEvent();
@@ -237,7 +237,7 @@ class Consumer
             }
         }
 
-        foreach ($this->consumeOptions as $options) {
+        foreach ($this->consumerDef->consumeOptions as $options) {
             $this->channel->basic_cancel($options->consumerTag, false, true);
             $options->consumerTag = null;
         }

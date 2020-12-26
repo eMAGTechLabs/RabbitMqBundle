@@ -4,6 +4,7 @@ namespace OldSound\RabbitMqBundle\Declarations;
 
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Exception\AMQPException;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -38,7 +39,37 @@ class Declarator
                 $exchange->ticket,
             );
 
-            $this->logger->info(sprintf('Exchange is declared successfully', ['exchange' => $exchange]));
+//            $this->logger->info('Exchange {exchange} declared ', [
+//                'exchange' => $exchange->name
+//            ]);
+        }
+    }
+
+    /**
+     * @deprecated
+     * TODO remove
+     */
+    public function declareQueuesAndBindings(DeclarationsRegistry $declarationsRegistry)
+    {
+        foreach ($declarationsRegistry->queues as $name => $queue) {
+            list($queueName, ,) = $this->channel->queue_declare(
+                $queue->name,
+                $queue->passive,
+                $queue->durable,
+                $queue->exclusive,
+                $queue->autoDelete,
+                $queue->nowait,
+                $queue->arguments,
+                $queue->ticket
+            );
+
+            /*if (isset($options['routing_keys']) && count($options['routing_keys']) > 0) {
+                foreach ($options['routing_keys'] as $queue->name) {
+                    $this->channel->queue_bind($queue->name, $queue->name, $routingKey, $options['arguments'] ?? []);
+                }
+            } else {
+                $this->queueBind($queue->name, $this->exchangeOptions['name'], $this->routingKey, $options['arguments'] ?? []);
+            }*/
         }
     }
 
@@ -48,7 +79,7 @@ class Declarator
      */
     public function declareQueues(array $queues): array
     {
-        $results = [];
+        $queueNames = [];
         foreach ($queues as $queue) {
             $result = $this->channel->queue_declare(
                 $queue->name,
@@ -56,19 +87,19 @@ class Declarator
                 $queue->durable,
                 $queue->exclusive,
                 $queue->autoDelete,
-                $queue->nowait,
+                false,
                 $queue->arguments,
                 $queue->ticket,
             );
 
             if ($result === null) {
-                // TODO
+                throw new AMQPException('');
             } else {
-                $results[] = $result[0];
-                $this->logger->info(sprintf('Queue is declared successfully', ['queue' => $queue]));
+                $queueNames[] = $result[0];
+                // $this->logger->info('Queue {queue} declared', ['queue' => $queue->name]);
             }
         }
-        return $results;
+        return $queueNames;
     }
 
     /**
@@ -117,7 +148,7 @@ class Declarator
                 }
             }
 
-            $this->logger->info(sprintf('Binding is declared successfully', ['binding' => $binding]));
+            // $this->logger->info('Binding declared', ['binding' => $binding]);
         }
     }
 

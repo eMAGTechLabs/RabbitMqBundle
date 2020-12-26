@@ -2,12 +2,13 @@
 
 namespace OldSound\RabbitMqBundle\RabbitMq;
 
+use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AbstractConnection;
+use PhpAmqpLib\Connection\AMQPConnection;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 class AMQPConnectionFactory
 {
-    /** @var array */
     private $defaultParameters = [
         'url'                => '',
         'host'               => 'localhost',
@@ -114,5 +115,11 @@ class AMQPConnectionFactory
         unset($parameters['url']);
 
         return $parameters;
+    }
+
+    // TODO move
+    public static function getChannelFromConnection(AbstractConnection $connection): AMQPChannel
+    {
+        return $connection->channel(1);
     }
 }

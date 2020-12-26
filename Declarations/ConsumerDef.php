@@ -12,4 +12,6 @@ class ConsumerDef
     public $connection;
     /** @var int */
     public $timeoutWait;
+    /** @var ConsumeOptions[] */
+    public $consumeOptions = [];
 }

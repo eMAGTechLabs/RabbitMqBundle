@@ -4,6 +4,7 @@ namespace OldSound\RabbitMqBundle\ReceiverExecutor;
 
 use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
 use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
+use PhpAmqpLib\Message\AMQPMessage;
 
 class SingleReceiverExecutor implements ReceiverExecutorInterface
 {
@@ -13,6 +14,9 @@ class SingleReceiverExecutor implements ReceiverExecutorInterface
             throw new \InvalidArgumentException('todo');
         }
 
-        return [$receiver($messages[0])];
+        /** @var AMQPMessage $message */
+        $message = reset($messages);
+
+        return [$message->getDeliveryTag() => $receiver($message)];
     }
 }

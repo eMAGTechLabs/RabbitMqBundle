@@ -3,6 +3,7 @@
 namespace OldSound\RabbitMqBundle\Command;
 
 use OldSound\RabbitMqBundle\Consumer\ConsumersRegistry;
+use OldSound\RabbitMqBundle\Declarations\ConsumerDef;
 use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
 use OldSound\RabbitMqBundle\Declarations\Declarator;
 use OldSound\RabbitMqBundle\Event\AfterProcessingMessageEvent;
@@ -10,6 +11,7 @@ use OldSound\RabbitMqBundle\Event\AfterProcessingMessagesEvent;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\EventListener\MemoryLimitListener;
 use OldSound\RabbitMqBundle\EventListener\PcntlSignalDispatchSubscriber;
+use OldSound\RabbitMqBundle\RabbitMq\AMQPConnectionFactory;
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use Symfony\Component\Console\Command\Command;
@@ -55,14 +57,16 @@ class ConsumerCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $consumerName = $input->getArgument('name');
-        $alias = sprintf('old_sound_rabbit_mq.consumer.%s', $consumerName);
-        if (!$this->container->has($alias)) {
-            $containerNames = $this->container->getParameter('old_sound_rabbit_mq.allowed_consumer_names');
-            throw new InvalidArgumentException(sprintf('Consumer %s is undefined. Allowed ones: %s', $consumerName, join(', ', $containerNames)));
+        /** @var DeclarationsRegistry $declarationRegistry */
+        $declarationRegistry = $this->container->get('old_sound_rabbit_mq.declaration_registry');
+
+        if (!isset($declarationRegistry->consumers[$consumerName])) {
+            throw new InvalidArgumentException(sprintf('Consumer %s is undefined. Allowed ones: %s', $consumerName, join(', ', $declarationRegistry->consumers)));
         }
 
-        /** @var Consumer $consumer */
-        $consumer = $this->container->get($alias); // TODO create by fly?
+        /** @var ConsumerDef $consumerDef */
+        $consumerDef = $declarationRegistry->consumers[$consumerName];
+        $consumer = new Consumer($consumerDef); // TODO factory service
         
         if (
             !is_null($input->getOption('memory-limit')) &&
@@ -100,21 +104,19 @@ class ConsumerCommand extends Command
         }
 
         if (!$input->getOption('skip-declare')) {
-            $this->declareForConsumer($consumer, $output);
+            $this->declareForConsumer($consumerDef, $output);
         }
 
         return $consumer->startConsume($this->amount);
     }
 
-    private function declareForConsumer(Consumer $consumer, OutputInterface $output)
+    private function declareForConsumer(ConsumerDef $consumerDef, OutputInterface $output)
     {
-        $declarator = new Declarator($consumer->getChannel());
-        $declarator->setLogger(
-            new ConsoleLogger($output)
-        );
+        $declarator = new Declarator(AMQPConnectionFactory::getChannelFromConnection($consumerDef->connection));
+        $declarator->setLogger(new ConsoleLogger($output));
         $declarationRegistry = $this->container->get('old_sound_rabbit_mq.declaration_registry');
-        foreach($consumer->getConsumeOptions() as $queueConsuming) {
-            $declarator->declareForQueueDeclaration($queueConsuming->options->queue, $declarationRegistry);
+        foreach($consumerDef->consumeOptions as $consumeOptions) {
+            $declarator->declareForQueueDeclaration($consumeOptions->queue, $declarationRegistry);
         }
     }
 }

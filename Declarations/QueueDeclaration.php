@@ -8,48 +8,31 @@ namespace OldSound\RabbitMqBundle\Declarations;
  */
 class QueueDeclaration
 {
+    /** @var string */
     public $name;
-    public $passive;
-    public $durable;
-    public $exclusive;
-    public $autoDelete;
-    public $nowait;
-    public $arguments;
+    /** @var bool */
+    public $passive = false;
+    /** @var bool */
+    public $durable = true;
+    /** @var bool */
+    public $exclusive = false;
+    /** @var bool */
+    public $autoDelete = false;
+    /** @var array */
+    public $arguments = [];
     public $ticket;
     public $declare;
 
-    // TODO remove
-    public function setAnonymus()
+    // TODO move
+    public static function createAnonymous(): QueueDeclaration
     {
-        $this->setQueueOptions(array(
-            'name' => '',
-            'passive' => false,
-            'durable' => false,
-            'exclusive' => true,
-            'auto_delete' => true,
-            'nowait' => false,
-            'arguments' => null,
-            'ticket' => null
-        ));
-    }
+        $anonQueueDeclaration = new QueueDeclaration();
+        $anonQueueDeclaration->passive = false;
+        $anonQueueDeclaration->durable = false;
+        $anonQueueDeclaration->exclusive = true;
+        $anonQueueDeclaration->autoDelete = true;
+        $anonQueueDeclaration->nowait = false;
 
-    /**
-     *  TODO delete
-     */
-    public function declure() {
-        foreach ($this->queues as $name => $options) {
-            list($queueName, ,) = $this->getChannel()->queue_declare($name, $options['passive'],
-                $options['durable'], $options['exclusive'],
-                $options['auto_delete'], $options['nowait'],
-                $options['arguments'], $options['ticket']);
-
-            if (isset($options['routing_keys']) && count($options['routing_keys']) > 0) {
-                foreach ($options['routing_keys'] as $routingKey) {
-                    $this->queueBind($queueName, $this->exchangeOptions['name'], $routingKey, $options['arguments'] ?? []);
-                }
-            } else {
-                $this->queueBind($queueName, $this->exchangeOptions['name'], $this->routingKey, $options['arguments'] ?? []);
-            }
-        }
+        return $anonQueueDeclaration;
     }
 }

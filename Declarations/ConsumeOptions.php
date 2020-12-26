@@ -2,6 +2,10 @@
 
 namespace OldSound\RabbitMqBundle\Declarations;
 
+/**
+ * @Annotation
+ * @Target({"CLASS", "METHOD"})
+ */
 class ConsumeOptions
 {
     /** @var string */
@@ -20,4 +24,6 @@ class ConsumeOptions
     public $qosPrefetchCount = 0;
     /** @var int */
     public $qosPrefetchSize = 0;
+    /** @var callable */
+    public $receiver;
 }

@@ -5,11 +5,14 @@ namespace OldSound\RabbitMqBundle\Declarations;
 class DeclarationsRegistry
 {
     /** @var ExchangeDeclaration[] */
-    public $exchanges;
+    public $exchanges = [];
     /** @var QueueDeclaration[] */
-    public $queues;
+    public $queues = [];
     /** @var BindingDeclaration[] */
     public $bindings = [];
+
+    /** @var ConsumerDef[] */
+    public $consumers = [];
     
     public function addExchange(ExchangeDeclaration $exchangeDeclaration)
     {
@@ -27,6 +30,14 @@ class DeclarationsRegistry
     public function addBinding(BindingDeclaration $bindingDeclaration)
     {
         $this->bindings[] = $bindingDeclaration;
+    }
+
+    public function addConsumer(ConsumerDef $consumerDef)
+    {
+        if (isset($this->consumers[$consumerDef->name])) {
+            throw new \InvalidArgumentException(sprintf('Consumer definition with %s name already registerd', $consumerDef->name));
+        }
+        $this->consumers[$consumerDef->name] = $consumerDef;
     }
 
     /**

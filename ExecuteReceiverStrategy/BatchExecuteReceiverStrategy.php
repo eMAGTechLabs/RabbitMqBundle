@@ -34,7 +34,7 @@ class BatchExecuteReceiverStrategy extends AbstractExecuteReceiverStrategy
         if ($this->isBatchEmpty()) {
             throw new \InvalidArgumentException('TODO');
         }
-        if ($message !== $this->messagesBatch[count($this->messagesBatch) - 1]) {
+        if ($message !== $this->messagesBatch[array_key_last($this->messagesBatch)]) {
             throw new \InvalidArgumentException('TODO');
         }
 

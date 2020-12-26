@@ -17,10 +17,9 @@ class MessageDataCollector extends DataCollector
     /** @var TraceableAMQPChannel[] */
     private $channels;
 
-    public function __construct($channels)
+    public function __construct(iterable $channels)
     {
         $this->channels = $channels;
-        $this->data = [];
     }
 
     public function collect(Request $request, Response $response, \Throwable $exception = null)

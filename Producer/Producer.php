@@ -5,83 +5,64 @@ namespace OldSound\RabbitMqBundle\Producer;
 use OldSound\RabbitMqBundle\Declarations\DeclarationsRegistry;
 use OldSound\RabbitMqBundle\Declarations\Declarator;
 use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
+use OldSound\RabbitMqBundle\RabbitMq\AMQPConnectionFactory;
 use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
 
-/**
- * Producer, that publishes AMQP Messages
- */
-class Producer implements ProducerInterface
+class Producer
 {
-    use LoggerAwareTrait;
+    const DELIVERY_MODE_NON_PERSISTENT = 1;
+    const DELIVERY_MODE_PERSISTENT = 2;
 
-    /** @var AMQPChannel */
-    protected $channel;
     /** @var string */
     protected $exchange;
-    /** @var bool */
-    protected $autoDeclare;
+    /** @var DeclarationsRegistry|null */
+    protected $declarationsRegistry;
 
-    /** @var string */
-    protected $contentType = 'text/plain';
-    /** @var int */
-    protected $deliveryMode = self::DELIVERY_MODE_PERSISTENT;
+    protected $additionalProperties = [
+        'content_type' => 'text/plain',
+        'delivery_mode' => self::DELIVERY_MODE_PERSISTENT
+    ];
 
-    public function __construct(AMQPChannel $channel, string $exchange, bool $autoDeclare = false)
+    public function __construct(AbstractConnection $connection, string $exchange)
     {
-        $this->channel = $channel;
+        $this->connection = $connection;
         $this->exchange = $exchange;
-        $this->logger = new NullLogger();
-        $this->autoDeclare = $autoDeclare;
     }
 
-    public function setContentType(string $contentType): Producer
+    public function setAdditionalProperties(array $additionalProperties): Producer
     {
-        $this->contentType = $contentType;
-        return $this;
-    }
-
-    public function setDeliveryMode(int $deliveryMode): Producer
-    {
-        $this->deliveryMode = $deliveryMode;
+        $this->additionalProperties = array_merge($this->additionalProperties, $additionalProperties);
         return $this;
     }
 
     /**
-     * Publishes the message and merges additional properties with basic properties
-     *
-     * @param string $msgBody
-     * @param string $routingKey
-     * @param array $additionalProperties
-     * @param array $headers
+     * Enable auto declare
      */
-    public function publish($msgBody, string $routingKey = '', array $additionalProperties = [], array $headers = null)
+    public function setRegisterDeclare(DeclarationsRegistry $declarationsRegistry = null): Producer
     {
-        if ($this->autoDeclare) {
-            // TODO (new Declarator($this->channel))->declareForExchange($this->exchange);
+        $this->declarationsRegistry = $declarationsRegistry;
+        return $this;
+    }
+
+    public function publish(string $body, string $routingKey = '', array $additionalProperties = [], array $headers = null): void
+    {
+        if ($this->declarationsRegistry) {
+            (new Declarator($this->channel))->declareForExchange($this->exchange, $this->declarationsRegistry);
+            $this->declarationsRegistry = null; // stop autodeclare
         }
 
-        $msg = new AMQPMessage((string) $msgBody, array_merge([
-            'content_type' => $this->contentType,
-            'delivery_mode' => $this->deliveryMode
-        ], $additionalProperties));
+        $msg = new AMQPMessage($body, array_merge($this->additionalProperties, $additionalProperties));
 
-        if (!empty($headers)) {
+        if (null !== $headers) {
             $headersTable = new AMQPTable($headers);
             $msg->set('application_headers', $headersTable);
         }
 
-        $this->channel->basic_publish($msg, $this->exchange, $routingKey);
-        $this->logger->debug('AMQP message published', [
-            'amqp' => [
-                'body' => $msgBody,
-                'routingkeys' => $routingKey,
-                'properties' => $additionalProperties,
-                'headers' => $headers
-            ]
-        ]);
+        AMQPConnectionFactory::getChannelFromConnection($this->connection)->basic_publish($msg, $this->exchange, $routingKey);
     }
 }

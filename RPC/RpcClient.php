@@ -48,26 +48,13 @@ class RpcClient implements BatchReceiverInterface
 
     public function declareRepliesQueue($repliesQueueName = null): RpcClient
     {
-        $this->anonRepliesQueue = $this->createAnonQueueDeclaration();
+        $this->anonRepliesQueue = QueueDeclaration::createAnonymous();
         $this->anonRepliesQueue->name = $repliesQueueName;
         $declarator = new Declarator($this->channel);
         [$queueName] = $declarator->declareQueues([$this->anonRepliesQueue]);
         $this->anonRepliesQueue->name = $queueName;
 
         return $this;
-    }
-
-    // TODO public move
-    private function createAnonQueueDeclaration(): QueueDeclaration
-    {
-        $anonQueueDeclaration = new QueueDeclaration();
-        $anonQueueDeclaration->passive = false;
-        $anonQueueDeclaration->durable = false;
-        $anonQueueDeclaration->exclusive = true;
-        $anonQueueDeclaration->autoDelete = true;
-        $anonQueueDeclaration->nowait = false;
-
-        return $anonQueueDeclaration;
     }
 
     public function addRequest($msgBody, $rpcQueue, MessageSerializerInterface $serializer = null)
