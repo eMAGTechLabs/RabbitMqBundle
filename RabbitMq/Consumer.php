@@ -20,12 +20,10 @@ use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverResultHandlerInterface;
 use OldSound\RabbitMqBundle\ReceiverExecutor\ReplyReceiverResultHandler;
 use OldSound\RabbitMqBundle\ReceiverExecutor\SingleReceiverResultHandler;
 use PhpAmqpLib\Channel\AMQPChannel;
-use PhpAmqpLib\Exception\AMQPRuntimeException;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\NullLogger;
-use Symfony\Component\Serializer\SerializerInterface;
 
 class Consumer
 {
@@ -41,6 +39,7 @@ class Consumer
     protected $executeReceiverStrategies;
     /** @var bool */
     protected $forceStop = false;
+
     /**
      * @var \DateTime|null DateTime after which the consumer will gracefully exit. "Gracefully" means, that
      *      any currently running consumption will not be interrupted.
@@ -52,10 +51,8 @@ class Consumer
     public $timeoutWait;
     /** @var int */
     public $idleTimeout = 0;
-    /** @var int */
+    /** @var int|null */
     public $idleTimeoutExitCode;
-    /** @var \DateTime|null */
-    public $lastActivityDateTime;
 
     public function __construct(ConsumerDef $consumerDef)
     {
@@ -65,6 +62,8 @@ class Consumer
 
     protected function setup(): Consumer
     {
+        $this->channel = AMQPConnectionFactory::getChannelFromConnection($this->consumerDef->connection);
+
         foreach($this->consumerDef->consumeOptions as $index => $options) {
             $this->channel->basic_qos($options->qosPrefetchSize, $options->qosPrefetchCount, false);
 
@@ -76,7 +75,6 @@ class Consumer
             $this->executeReceiverStrategies[$index] = $executeReceiverStrategy;
 
             $executeReceiverStrategy->setReceiver(fn (array $messages) => $this->runReceiver($messages, $options));
-
 
             $consumerTag = $this->channel->basic_consume(
                 $options->queue,
@@ -113,13 +111,13 @@ class Consumer
         } catch (Exception\StopConsumerException $e) {
             $this->logger->info('Consumer requested stop', [
                 'exception' => $e,
-                'amqp' => $this->createLoggerExtraContext($messages)
+                'amqp' => $this->createLoggerExtraContext($messages, $options)
             ]);
             throw $e;
         } catch (\Throwable $e) {
             $this->logger->error('Throw exception while process messages', [
                 'exception' => $e,
-                'amqp' => $this->createLoggerExtraContext($messages)
+                'amqp' => $this->createLoggerExtraContext($messages, $options)
             ]);
             throw $e;
         }
@@ -136,11 +134,11 @@ class Consumer
     }
 
 
-    private function createLoggerExtraContext(array $messages): array
+    private function createLoggerExtraContext(array $messages, ConsumeOptions $options): array
     {
         return [
             'consumer' => $this->consumerDef->name,
-            'queue' => $this->options->queue,
+            'queue' => $options->queue,
             'messages' => $messages
         ];
     }
@@ -169,9 +167,8 @@ class Consumer
      */
     public function startConsume(): int
     {
-        $this->channel = AMQPConnectionFactory::getChannelFromConnection($this->consumerDef->connection);
         $this->setup();
-        $this->lastActivityDateTime = new \DateTime();
+        $lastActivityDateTime = new \DateTime();
         while ($this->channel->is_consuming()) {
             $event = new OnConsumeEvent();
             $this->dispatchEvent($event, OnConsumeEvent::NAME);
@@ -194,7 +191,7 @@ class Consumer
 
             try {
                 $this->channel->wait(null, false, $waitTimeout);
-                $this->lastActivityDateTime = new \DateTime();
+                $lastActivityDateTime = new \DateTime();
                 if ($this->forceStop) {
                     break;
                 }
@@ -204,7 +201,7 @@ class Consumer
                     return $this->gracefulMaxExecutionTimeoutExitCode;
                 }
 
-                if ($this->idleTimeout && ($this->lastActivityDateTime->getTimestamp() + $this->idleTimeout <= $now->getTimestamp())) {
+                if ($this->idleTimeout && ($lastActivityDateTime->getTimestamp() + $this->idleTimeout <= $now->getTimestamp())) {
                     $idleEvent = new OnIdleEvent();
                     $this->dispatchEvent($idleEvent, OnIdleEvent::NAME);
 

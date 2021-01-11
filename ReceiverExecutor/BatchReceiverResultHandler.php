@@ -3,12 +3,13 @@
 
 namespace OldSound\RabbitMqBundle\ReceiverExecutor;
 
+use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
 
 class BatchReceiverResultHandler implements ReceiverResultHandlerInterface
 {
-    public function handle($result, array $messages): void
+    public function handle($result, array $messages, ConsumeOptions $options): void
     {
         if ($result === true) {
             $flags = ReceiverInterface::MSG_ACK;

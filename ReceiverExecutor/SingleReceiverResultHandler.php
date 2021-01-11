@@ -9,7 +9,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 class SingleReceiverResultHandler implements ReceiverResultHandlerInterface
 {
-    public function handle($result, array $messages): void
+    public function handle($result, array $messages, ConsumeOptions $options): void
     {
         if (count($messages) !== 1) {
             throw new \InvalidArgumentException('todo');
@@ -18,7 +18,6 @@ class SingleReceiverResultHandler implements ReceiverResultHandlerInterface
         /** @var AMQPMessage $message */
         $message = reset($messages);
 
-        $options = new ConsumeOptions();
         if ($options->noAck) {
             if ($result !== null) {
                 throw new \InvalidArgumentException('sdf');
