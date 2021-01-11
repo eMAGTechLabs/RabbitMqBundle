@@ -1,0 +1,38 @@
+<?php
+
+
+namespace OldSound\RabbitMqBundle\ReceiverExecutor;
+
+use OldSound\RabbitMqBundle\RabbitMq\Consumer;
+use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
+
+class BatchReceiverResultHandler implements ReceiverResultHandlerInterface
+{
+    public function handle($result, array $messages): void
+    {
+        if ($result === true) {
+            $flags = ReceiverInterface::MSG_ACK;
+        } else if ($result === false) {
+            $flags = ReceiverInterface::MSG_REJECT;
+        } else {
+            $flags = $result;
+        }
+
+        if (!is_array($flags)) { // flat flag for each delivery tag
+            $flag = $flags;
+            $flags = [];
+            foreach ($messages as $message) {
+                $flags[$message->getDeliveryTag()] = $flag;
+            }
+        } else if (count($flags) !== count($messages)) {
+            throw new AMQPRuntimeException(// TODO
+                'Method batchExecute() should return an array with elements equal with the number of messages processed'
+            );
+        }
+
+        /** @var AMQPMessage $message */
+        $message = reset($messages);
+
+        Consumer::handleProcessMessages($message->getChannel(), [$message->getDeliveryFlag() => $result]);
+    }
+}

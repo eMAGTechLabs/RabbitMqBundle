@@ -8,10 +8,8 @@ use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 
 class MemoryLimitListener
 {
-    /**
-     * @var int
-     */
-    public $memoryLimit;
+    /** @var int */
+    private $memoryLimit;
     
     public function __construct(int $memoryLimit)
     {

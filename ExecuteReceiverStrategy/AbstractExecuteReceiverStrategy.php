@@ -2,27 +2,25 @@
 
 namespace OldSound\RabbitMqBundle\ExecuteReceiverStrategy;
 
-use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverExecutorInterface;
+use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverResultHandlerInterface;
 use PhpAmqpLib\Message\AMQPMessage;
 
 abstract class AbstractExecuteReceiverStrategy implements ExecuteReceiverStrategyInterface
 {
     /** @var callable */
     private $receiver;
-    /** @var ReceiverExecutorInterface */
-    private $executor;
 
-    public function setReceiver(callable $receiver, ReceiverExecutorInterface $executor)
+    public function setReceiver(callable $receiver): void
     {
         $this->receiver = $receiver;
-        $this->executor = $executor;
     }
 
     /**
      * @param AMQPMessage[] $meesages
      */
-    protected function execute(array $messages): array
+    protected function execute(array $messages): void
     {
-        return $this->executor->execute($messages, $this->receiver);
+        $receiver = $this->receiver;
+        $receiver($messages);
     }
 }

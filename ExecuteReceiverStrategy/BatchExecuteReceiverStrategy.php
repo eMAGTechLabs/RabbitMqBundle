@@ -19,14 +19,13 @@ class BatchExecuteReceiverStrategy extends AbstractExecuteReceiverStrategy
         $this->batchCount = $batchCount;
     }
 
-    public function onConsumeCallback(AMQPMessage $message): ?array
+    public function onConsumeCallback(AMQPMessage $message): void
     {
         $this->messagesBatch[$message->getDeliveryTag()] = $message;
 
         if ($this->isBatchCompleted()) {
-            return $this->execute($this->messagesBatch);
+            $this->execute($this->messagesBatch);
         }
-        return null;
     }
 
     public function onMessageProcessed(AMQPMessage $message)

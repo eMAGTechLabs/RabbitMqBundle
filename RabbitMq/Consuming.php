@@ -8,9 +8,9 @@ use OldSound\RabbitMqBundle\Declarations\RpcConsumeOptions;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\BatchExecuteReceiverStrategy;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\ExecuteReceiverStrategyInterface;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\SingleExecuteReceiverStrategy;
-use OldSound\RabbitMqBundle\ReceiverExecutor\BatchReceiverExecutor;
-use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverExecutorInterface;
-use OldSound\RabbitMqBundle\ReceiverExecutor\SingleReceiverExecutor;
+use OldSound\RabbitMqBundle\ReceiverExecutor\BatchReceiverResultHandler;
+use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverResultHandlerInterface;
+use OldSound\RabbitMqBundle\ReceiverExecutor\SingleReceiverResultHandler;
 
 class Consuming
 {
@@ -28,16 +28,16 @@ class Consuming
      */
     public $executeReceiverStrategy;
     /**
-     * @var ReceiverExecutorInterface
-     * @see SingleReceiverExecutor
-     * @see BatchReceiverExecutor
+     * @var ReceiverResultHandlerInterface
+     * @see SingleReceiverResultHandler
+     * @see BatchReceiverResultHandler
      */
     public $receiverExecutor;
 
     /** @var int|string|null */
     public $consumerTag;
 
-    public function __construct($options, ExecuteReceiverStrategyInterface $executeReceiverStrategy, ReceiverExecutorInterface $receiverExecutor)
+    public function __construct($options, ExecuteReceiverStrategyInterface $executeReceiverStrategy, ReceiverResultHandlerInterface $receiverExecutor)
     {
         $this->options = $options;
         $this->executeReceiverStrategy = $executeReceiverStrategy;

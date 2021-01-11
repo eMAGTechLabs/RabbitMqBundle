@@ -11,10 +11,10 @@ class SingleExecuteReceiverStrategy extends AbstractExecuteReceiverStrategy
     /** @var AMQPMessage */
     private $processingMessage;
 
-    public function onConsumeCallback(AMQPMessage $message): ?array
+    public function onConsumeCallback(AMQPMessage $message): void
     {
         $this->processingMessage = $message;
-        return $this->execute([$this->processingMessage]);
+        $this->execute([$this->processingMessage]);
     }
 
     public function onMessageProcessed(AMQPMessage $message)

@@ -6,18 +6,19 @@ use OldSound\RabbitMqBundle\Declarations\BatchConsumeOptions;
 use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
 use OldSound\RabbitMqBundle\Declarations\ConsumerDef;
 use OldSound\RabbitMqBundle\Declarations\RpcConsumeOptions;
+use OldSound\RabbitMqBundle\Event\AfterProcessingMessagesEvent;
 use OldSound\RabbitMqBundle\Event\OnConsumeEvent;
 use OldSound\RabbitMqBundle\Event\OnIdleEvent;
+use OldSound\RabbitMqBundle\Event\ReceiverArgumentsEvent;
 use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\BatchExecuteReceiverStrategy;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\ExecuteReceiverStrategyInterface;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\SingleExecuteReceiverStrategy;
-use OldSound\RabbitMqBundle\ReceiverExecutor\BatchReceiverExecutor;
-use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverExecutorDecorator;
+use OldSound\RabbitMqBundle\ReceiverExecutor\BatchReceiverResultHandler;
 use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
-use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverExecutorInterface;
-use OldSound\RabbitMqBundle\ReceiverExecutor\ReplyReceiverExecutor;
-use OldSound\RabbitMqBundle\ReceiverExecutor\SingleReceiverExecutor;
+use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverResultHandlerInterface;
+use OldSound\RabbitMqBundle\ReceiverExecutor\ReplyReceiverResultHandler;
+use OldSound\RabbitMqBundle\ReceiverExecutor\SingleReceiverResultHandler;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
@@ -36,22 +37,10 @@ class Consumer
     /** @var \AMQPChannel */
     protected $channel;
 
-    /** @var callable[] */
-    protected $receivers;
     /** @var ExecuteReceiverStrategyInterface[] */
     protected $executeReceiverStrategies;
-
-    /** @var int|null */
-    protected $target;
-    /** @var int */
-    protected $consumed = 0;
     /** @var bool */
     protected $forceStop = false;
-    /**
-     * Important! If true - then channel can not be used from somewhere else
-     * @var bool
-     */
-    public $multiAck = false;
     /**
      * @var \DateTime|null DateTime after which the consumer will gracefully exit. "Gracefully" means, that
      *      any currently running consumption will not be interrupted.
@@ -84,16 +73,10 @@ class Consumer
             $executeReceiverStrategy = $options instanceof BatchConsumeOptions ?
                 new BatchExecuteReceiverStrategy($options->batchCount) :
                 new SingleExecuteReceiverStrategy();
+            $this->executeReceiverStrategies[$index] = $executeReceiverStrategy;
 
-            $executeReceiverStrategies[$index] = $executeReceiverStrategy;
+            $executeReceiverStrategy->setReceiver(fn (array $messages) => $this->runReceiver($messages, $options));
 
-            // TODO chining
-            $receiverExecutor = new ReceiverExecutorDecorator($this->createExecutor($options), $this->consumerDef, $options);
-            $receiverExecutor->setLogger($this->logger);
-            if ($this->eventDispatcher) {
-                $receiverExecutor->setEventDispatcher($this->eventDispatcher);
-            }
-            $executeReceiverStrategy->setReceiver($options->receiver, $receiverExecutor);
 
             $consumerTag = $this->channel->basic_consume(
                 $options->queue,
@@ -102,15 +85,8 @@ class Consumer
                 $options->noAck,
                 $options->exclusive,
                 false,
-                function (AMQPMessage $message) use ($executeReceiverStrategy) {
-                    $flags = $executeReceiverStrategy->onConsumeCallback($message);
-                    if (null !== $flags) {
-                        $this->handleProcessMessages($flags);
-                        $executeReceiverStrategy->onMessageProcessed($message);
-                    }
-
-                    $this->maybeStopConsumer();
-                });
+                fn (\AMQPMessage $message) => $this->messageCallback($message, $executeReceiverStrategy)
+            );
 
             $options->consumerTag = $consumerTag;
         }
@@ -118,25 +94,81 @@ class Consumer
         return $this;
     }
 
-    private function createExecutor(ConsumeOptions $options): ReceiverExecutorInterface
+    private function runReceiver(array $messages, ConsumeOptions $options)
+    {
+        $arguments = $this->argumentResolver->getArguments($messages, $options);
+
+        // $messages
+        $event = new ReceiverArgumentsEvent($arguments, $this->options);
+        $this->dispatchEvent($event, ReceiverArgumentsEvent::NAME);
+        if ($event->isForceStop()) {
+            throw new StopConsumerException();
+        }
+
+        try {
+            $controller = $event->getController();
+            $arguments = $event->getArguments();
+
+            $result = $controller(...$arguments);
+        } catch (Exception\StopConsumerException $e) {
+            $this->logger->info('Consumer requested stop', [
+                'exception' => $e,
+                'amqp' => $this->createLoggerExtraContext($messages)
+            ]);
+            throw $e;
+        } catch (\Throwable $e) {
+            $this->logger->error('Throw exception while process messages', [
+                'exception' => $e,
+                'amqp' => $this->createLoggerExtraContext($messages)
+            ]);
+            throw $e;
+        }
+
+        $receiverResultHandler = $this->createReceiverResultHandler($options);
+        $receiverResultHandler->handle($result, $messages, $options);
+
+        //$this->logger->info('Queue messages processed', ['amqp' => [...$this->createLoggerExtraContext($messages), 'flags' => $flags]]);
+        $event = new AfterProcessingMessagesEvent($messages); // TODO add flag code
+        $this->dispatchEvent($event, AfterProcessingMessagesEvent::NAME);
+        if ($event->isForceStop()) {
+            throw new StopConsumerException();
+        }
+    }
+
+
+    private function createLoggerExtraContext(array $messages): array
+    {
+        return [
+            'consumer' => $this->consumerDef->name,
+            'queue' => $this->options->queue,
+            'messages' => $messages
+        ];
+    }
+
+    private function messageCallback(\AMQPMessage $message, ExecuteReceiverStrategyInterface $executeReceiverStrategy)
+    {
+        $executeReceiverStrategy->onConsumeCallback($message);
+        $executeReceiverStrategy->onMessageProcessed($message);
+
+        $this->maybeStopConsumer();
+    }
+
+    private function createReceiverResultHandler(ConsumeOptions $options): ReceiverResultHandlerInterface
     {
         if ($options instanceof BatchConsumeOptions) {
-            return new BatchReceiverExecutor();
+            return new BatchReceiverResultHandler();
         } else if ($options instanceof RpcConsumeOptions) {
-            return new ReplyReceiverExecutor($options);
+            return new ReplyReceiverResultHandler($options);
         } else {
-            return new SingleReceiverExecutor();
+            return new SingleReceiverResultHandler();
         }
     }
 
     /**
      * @throws  AMQPTimeoutException
      */
-    public function startConsume(int $msgAmount = null): int
+    public function startConsume(): int
     {
-        $this->target = $msgAmount;
-        $this->consumed = 0;
-
         $this->channel = AMQPConnectionFactory::getChannelFromConnection($this->consumerDef->connection);
         $this->setup();
         $this->lastActivityDateTime = new \DateTime();
@@ -190,36 +222,33 @@ class Consumer
         return 0;
     }
 
-    private function handleProcessMessages(array $flags)
+    public static function handleProcessMessages(\AMQPChannel $channel, array $flags, $multiAck = true)
     {
         $ack = !array_search(fn ($reply) => $reply !== ReceiverInterface::MSG_ACK, $flags, true);
-        if ($this->multiAck && count($flags) > 1 && $ack) {
+        if ($multiAck && count($flags) > 1 && $ack) {
             $lastDeliveryTag = array_key_last($flags);
 
-            $this->channel->basic_ack($lastDeliveryTag, true);
-            $this->consumed = $this->consumed + count($flags);
+            $channel->basic_ack($lastDeliveryTag, true);
         } else {
             foreach ($flags as $deliveryTag => $flag) {
                 if ($flag === ReceiverInterface::MSG_REJECT_REQUEUE) {
-                    $this->channel->basic_reject($deliveryTag, true); // Reject and requeue message to RabbitMQ
+                    $channel->basic_reject($deliveryTag, true); // Reject and requeue message to RabbitMQ
                 } else if ($flag === ReceiverInterface::MSG_SINGLE_NACK_REQUEUE) {
-                    $this->channel->basic_nack($deliveryTag, false, true); // NACK and requeue message to RabbitMQ
+                    $channel->basic_nack($deliveryTag, false, true); // NACK and requeue message to RabbitMQ
                 } else if ($flag === ReceiverInterface::MSG_REJECT) {
-                    $this->channel->basic_reject($deliveryTag, false); // Reject and drop
+                    $channel->basic_reject($deliveryTag, false); // Reject and drop
                 } else if ($flag !== ReceiverInterface::MSG_ACK_SENT) {
-                    $this->channel->basic_ack($deliveryTag); // Remove message from queue only if callback return not false
+                    $channel->basic_ack($deliveryTag); // Remove message from queue only if callback return not false
                 } else {
                     // TODO throw..
                 }
-
-                $this->consumed++;
             }
         }
     }
 
     protected function maybeStopConsumer()
     {
-        if ($this->forceStop || ($this->target && $this->consumed == $this->target)) {
+        if ($this->forceStop) {
             $this->stopConsuming();
         }
     }
@@ -243,10 +272,7 @@ class Consumer
         }
     }
 
-    /**
-     * @param int $secondsInTheFuture
-     */
-    public function setGracefulMaxExecutionDateTimeFromSecondsInTheFuture($secondsInTheFuture)
+    public function setGracefulMaxExecutionDateTimeFromSecondsInTheFuture(int $secondsInTheFuture)
     {
         $this->gracefulMaxExecutionDateTime = new \DateTime("+{$secondsInTheFuture} seconds");
     }

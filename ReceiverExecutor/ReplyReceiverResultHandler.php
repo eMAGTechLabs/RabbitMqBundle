@@ -3,12 +3,13 @@
 namespace OldSound\RabbitMqBundle\ReceiverExecutor;
 
 use OldSound\RabbitMqBundle\Declarations\RpcConsumeOptions;
+use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use OldSound\RabbitMqBundle\Receiver\ReceiverException;
 use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
 use OldSound\RabbitMqBundle\Receiver\ReplyReceiverInterface;
 use PhpAmqpLib\Message\AMQPMessage;
 
-class ReplyReceiverExecutor implements ReceiverExecutorInterface
+class ReplyReceiverResultHandler implements ReceiverResultHandlerInterface
 {
     /** @var RpcConsumeOptions */
     protected $options;
@@ -18,7 +19,7 @@ class ReplyReceiverExecutor implements ReceiverExecutorInterface
         $this->options = $options;
     }
 
-    public function execute(array $messages, callable $receiver): array
+    public function handle($result, array $messages): void
     {
         if (count($messages) !== 1) {
             throw new \InvalidArgumentException('Replay consumer not support batch messages execution');
@@ -31,14 +32,9 @@ class ReplyReceiverExecutor implements ReceiverExecutorInterface
             throw new \InvalidArgumentException('todo'); // TODO
         }
 
-        try {
-            $reply = $receiver($message);
-        } catch (ReceiverException $exception) {
-            return [$exception->getCode()];
-        }
-        $this->sendReply($message->getChannel(), $reply, $message->get($this->options->replayToProperty), $message->get($this->options->correlationIdProperty));
+        $this->sendReply($message->getChannel(), $result, $message->get($this->options->replayToProperty), $message->get($this->options->correlationIdProperty));
 
-        return [$message->getDeliveryTag() => ReceiverInterface::MSG_ACK];
+        Consumer::handleProcessMessages($message->getChannel(), [$message->getDeliveryTag() => ReceiverInterface::MSG_ACK]);
     }
 
     protected function sendReply(\AMQPChannel $channel, $reply, $replyTo, $correlationId)
