@@ -16,7 +16,6 @@ use OldSound\RabbitMqBundle\ExecuteCallbackStrategy\BatchExecuteCallbackStrategy
 use OldSound\RabbitMqBundle\Producer\NullProducer;
 use OldSound\RabbitMqBundle\Producer\Producer;
 use OldSound\RabbitMqBundle\RabbitMq\AMQPConnectionFactory;
-use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use OldSound\RabbitMqBundle\RabbitMq\TraceableAMQPChannel;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AbstractConnection;
@@ -225,10 +224,6 @@ class OldSoundRabbitMqExtension extends Extension
             }
 
             $this->container->setDefinition($alias, $definition);
-
-            if ($producer['logging']) {
-                $this->injectLogger($alias, $definition);
-            }
         }
     }
 

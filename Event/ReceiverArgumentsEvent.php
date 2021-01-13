@@ -10,12 +10,33 @@ class ReceiverArgumentsEvent extends AbstractAMQPEvent
 {
     const NAME = 'old_sound_rabbit_mq.before_processing';
 
+    protected $arguments;
     /** @var ConsumeOptions */
-    public $queueConsuming;
+    protected $options;
 
-    public function __construct(array $arguments, ConsumeOptions $queueConsuming)
+    public function __construct(array $arguments, ConsumeOptions $options)
     {
-        $this->messages = $arguments;
-        $this->queueConsuming = $queueConsuming;
+        $this->arguments = $arguments;
+        $this->options = $options;
+    }
+    
+    public function getArguments()
+    {
+        return $this->arguments;
+    }
+    
+    public function setArguments(array $arguments)
+    {
+        $this->arguments = $arguments;
+    }
+    
+    public function getOptions()
+    {
+        return $this->options;
+    }
+    
+    public function setReceiver(callable $receiver)
+    {
+        $this->options->receiver = $receiver;
     }
 }

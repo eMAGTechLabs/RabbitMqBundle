@@ -6,6 +6,7 @@ namespace OldSound\RabbitMqBundle\ReceiverExecutor;
 use OldSound\RabbitMqBundle\Declarations\ConsumeOptions;
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
+use PhpAmqpLib\Message\AMQPMessage;
 
 class BatchReceiverResultHandler implements ReceiverResultHandlerInterface
 {
@@ -34,6 +35,6 @@ class BatchReceiverResultHandler implements ReceiverResultHandlerInterface
         /** @var AMQPMessage $message */
         $message = reset($messages);
 
-        Consumer::handleProcessMessages($message->getChannel(), [$message->getDeliveryFlag() => $result]);
+        Consumer::handleProcessMessages($message->getChannel(), [$message->getDeliveryTag() => $result]);
     }
 }

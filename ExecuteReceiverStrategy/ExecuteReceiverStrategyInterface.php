@@ -10,7 +10,7 @@ interface ExecuteReceiverStrategyInterface
 {
     public function setReceiver(callable $receiver);
 
-    public function onConsumeCallback(AMQPMessage $message): ?array;
+    public function onConsumeCallback(AMQPMessage $message);
 
     public function onMessageProcessed(AMQPMessage $message);
 

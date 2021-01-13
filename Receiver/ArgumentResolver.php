@@ -24,11 +24,11 @@ final class ArgumentResolver implements ArgumentResolverInterface
     /**
      * {@inheritdoc}
      */
-    public function getArguments(array $messages, callable $receiver, ConsumeOptions $options): array
+    public function getArguments(array $messages, ConsumeOptions $options): array
     {
         $arguments = [];
 
-        foreach ($this->argumentMetadataFactory->createArgumentMetadata($receiver) as $metadata) {
+        foreach ($this->argumentMetadataFactory->createArgumentMetadata($options->receiver) as $metadata) {
             foreach ($this->argumentValueResolvers as $resolver) {
                 if (!$resolver->supports($messages, $options, $metadata)) {
                     continue;

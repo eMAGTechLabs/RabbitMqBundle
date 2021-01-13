@@ -27,21 +27,23 @@ class ReplyReceiverResultHandler implements ReceiverResultHandlerInterface
             throw new \InvalidArgumentException('todo'); // TODO
         }
 
-        $this->sendReply($message->getChannel(), $result, $message->get($options->replayToProperty), $message->get($options->correlationIdProperty));
+        if (!is_string($result)) {
+            throw new \InvalidArgumentException('replay receiver should return string');
+        }
+        $this->sendReply($message->getChannel(), $result, $message->get($options->replayToProperty), $message->get($options->correlationIdProperty), $options);
 
         Consumer::handleProcessMessages($message->getChannel(), [$message->getDeliveryTag() => ReceiverInterface::MSG_ACK]);
     }
 
-    protected function sendReply(\AMQPChannel $channel, $reply, $replyTo, $correlationId)
+    protected function sendReply(\AMQPChannel $channel, string $reply, $replyTo, $correlationId, RpcConsumeOptions $options)
     {
-        $body = $this->serializer->serialize($reply);
         $properties = array_merge(
             ['content_type' => 'text/plain'],
-            $this->options->replayMessageProperties,
-            [$this->options->correlationIdProperty => $correlationId]
+            $options->replayMessageProperties,
+            [$options->correlationIdProperty => $correlationId]
         );
 
-        $message = new AMQPMessage($body, $properties);
+        $message = new AMQPMessage($reply, $properties);
         $channel->basic_publish($message , '', $replyTo);
     }
 }

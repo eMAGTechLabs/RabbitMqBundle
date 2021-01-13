@@ -10,9 +10,8 @@ interface ArgumentResolverInterface
 {
     /**
      * @param \AMQPMessage[] $messages
-     * @param callable $receiver
      * @param ConsumeOptions $options
      * @return mixed
      */
-    public function getArguments(array $messages, callable $receiver, ConsumeOptions $options);
+    public function getArguments(array $messages, ConsumeOptions $options);
 }

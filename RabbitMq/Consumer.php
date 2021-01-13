@@ -14,6 +14,7 @@ use OldSound\RabbitMqBundle\EventDispatcherAwareTrait;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\BatchExecuteReceiverStrategy;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\ExecuteReceiverStrategyInterface;
 use OldSound\RabbitMqBundle\ExecuteReceiverStrategy\SingleExecuteReceiverStrategy;
+use OldSound\RabbitMqBundle\Receiver\ArgumentResolver;
 use OldSound\RabbitMqBundle\ReceiverExecutor\BatchReceiverResultHandler;
 use OldSound\RabbitMqBundle\Receiver\ReceiverInterface;
 use OldSound\RabbitMqBundle\ReceiverExecutor\ReceiverResultHandlerInterface;
@@ -40,6 +41,8 @@ class Consumer
     /** @var bool */
     protected $forceStop = false;
 
+    protected $argumentResolver;
+
     /**
      * @var \DateTime|null DateTime after which the consumer will gracefully exit. "Gracefully" means, that
      *      any currently running consumption will not be interrupted.
@@ -58,6 +61,7 @@ class Consumer
     {
         $this->consumerDef = $consumerDef;
         $this->logger = new NullLogger();
+        $this->argumentResolver = new ArgumentResolver();
     }
 
     protected function setup(): Consumer
@@ -83,7 +87,7 @@ class Consumer
                 $options->noAck,
                 $options->exclusive,
                 false,
-                fn (\AMQPMessage $message) => $this->messageCallback($message, $executeReceiverStrategy)
+                fn (AMQPMessage $message) => $this->messageCallback($message, $executeReceiverStrategy)
             );
 
             $options->consumerTag = $consumerTag;
@@ -97,17 +101,17 @@ class Consumer
         $arguments = $this->argumentResolver->getArguments($messages, $options);
 
         // $messages
-        $event = new ReceiverArgumentsEvent($arguments, $this->options);
+        $event = new ReceiverArgumentsEvent($arguments, $options);
         $this->dispatchEvent($event, ReceiverArgumentsEvent::NAME);
         if ($event->isForceStop()) {
             throw new StopConsumerException();
         }
 
         try {
-            $controller = $event->getController();
+            $receiver = $event->getOptions()->receiver;
             $arguments = $event->getArguments();
 
-            $result = $controller(...$arguments);
+            $result = $receiver(...$arguments);
         } catch (Exception\StopConsumerException $e) {
             $this->logger->info('Consumer requested stop', [
                 'exception' => $e,
@@ -143,7 +147,7 @@ class Consumer
         ];
     }
 
-    private function messageCallback(\AMQPMessage $message, ExecuteReceiverStrategyInterface $executeReceiverStrategy)
+    private function messageCallback(AMQPMessage $message, ExecuteReceiverStrategyInterface $executeReceiverStrategy)
     {
         $executeReceiverStrategy->onConsumeCallback($message);
         $executeReceiverStrategy->onMessageProcessed($message);
@@ -219,7 +223,7 @@ class Consumer
         return 0;
     }
 
-    public static function handleProcessMessages(\AMQPChannel $channel, array $flags, $multiAck = true)
+    public static function handleProcessMessages(AMQPChannel $channel, array $flags, $multiAck = true)
     {
         $ack = !array_search(fn ($reply) => $reply !== ReceiverInterface::MSG_ACK, $flags, true);
         if ($multiAck && count($flags) > 1 && $ack) {

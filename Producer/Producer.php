@@ -18,6 +18,8 @@ class Producer
     const DELIVERY_MODE_NON_PERSISTENT = 1;
     const DELIVERY_MODE_PERSISTENT = 2;
 
+    /** @var AbstractConnection */
+    protected $connection;
     /** @var string */
     protected $exchange;
     /** @var DeclarationsRegistry|null */
@@ -51,9 +53,10 @@ class Producer
 
     public function publish(string $body, string $routingKey = '', array $additionalProperties = [], array $headers = null): void
     {
+        $channel = AMQPConnectionFactory::getChannelFromConnection($this->connection);
         if ($this->declarationsRegistry) {
-            (new Declarator($this->channel))->declareForExchange($this->exchange, $this->declarationsRegistry);
-            $this->declarationsRegistry = null; // stop autodeclare
+            // TODO (new Declarator($channel))->declareForExchange($this->exchange, $this->declarationsRegistry);
+            //$this->declarationsRegistry = null; // stop autodeclare
         }
 
         $msg = new AMQPMessage($body, array_merge($this->additionalProperties, $additionalProperties));
@@ -63,6 +66,6 @@ class Producer
             $msg->set('application_headers', $headersTable);
         }
 
-        AMQPConnectionFactory::getChannelFromConnection($this->connection)->basic_publish($msg, $this->exchange, $routingKey);
+        $channel->basic_publish($msg, $this->exchange, $routingKey);
     }
 }
