@@ -6,10 +6,8 @@ interface DequeuerInterface
 {
     /**
      * Stop dequeuing messages.
-     *
-     * @return void
      */
-    public function forceStopConsumer();
+    public function forceStopConsumer(): void;
 
     /**
      * Set idle timeout
@@ -18,12 +16,10 @@ interface DequeuerInterface
      *
      * @return void
      */
-    public function setIdleTimeout($idleTimeout);
+    public function setIdleTimeout(int $idleTimeout);
 
     /**
      * Get current idle timeout
-     *
-     * @return int
      */
-    public function getIdleTimeout();
+    public function getIdleTimeout(): int;
 }

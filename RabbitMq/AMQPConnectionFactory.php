@@ -32,11 +32,11 @@ class AMQPConnectionFactory
      * @param string                                $class              FQCN of AMQPConnection class to instantiate.
      * @param array                                 $parameters         Map containing parameters resolved by
      *                                                                  Extension.
-     * @param ConnectionParametersProviderInterface $parametersProvider Optional service providing/overriding
+     * @param ConnectionParametersProviderInterface|null $parametersProvider Optional service providing/overriding
      *                                                                  connection parameters.
      */
     public function __construct(
-        $class,
+        string $class,
         array $parameters,
         ConnectionParametersProviderInterface $parametersProvider = null
     ) {
@@ -105,12 +105,8 @@ class AMQPConnectionFactory
 
     /**
      * Parses connection parameters from URL parameter.
-     *
-     * @param array $parameters
-     *
-     * @return array
      */
-    private function parseUrl(array $parameters)
+    private function parseUrl(array $parameters): array
     {
         if (!$parameters['url']) {
             return $parameters;

@@ -4,7 +4,6 @@ namespace OldSound\RabbitMqBundle\Event;
 
 use OldSound\RabbitMqBundle\RabbitMq\Consumer;
 use PhpAmqpLib\Message\AMQPMessage;
-use Symfony\Component\EventDispatcher\Event;
 
 /**
  * Class AMQPEvent
@@ -29,40 +28,24 @@ class AMQPEvent extends AbstractAMQPEvent
      */
     protected $consumer;
 
-    /**
-     * @return AMQPMessage
-     */
-    public function getAMQPMessage()
+    public function getAMQPMessage(): AMQPMessage
     {
         return $this->AMQPMessage;
     }
 
-    /**
-     * @param AMQPMessage $AMQPMessage
-     *
-     * @return AMQPEvent
-     */
-    public function setAMQPMessage(AMQPMessage $AMQPMessage)
+    public function setAMQPMessage(AMQPMessage $AMQPMessage): AMQPEvent
     {
         $this->AMQPMessage = $AMQPMessage;
 
         return $this;
     }
 
-    /**
-     * @return Consumer
-     */
-    public function getConsumer()
+    public function getConsumer(): Consumer
     {
         return $this->consumer;
     }
 
-    /**
-     * @param Consumer $consumer
-     *
-     * @return AMQPEvent
-     */
-    public function setConsumer(Consumer $consumer)
+    public function setConsumer(Consumer $consumer): AMQPEvent
     {
         $this->consumer = $consumer;
 

@@ -15,8 +15,6 @@ class OnConsumeEvent extends AMQPEvent
 
     /**
      * OnConsumeEvent constructor.
-     *
-     * @param Consumer $consumer
      */
     public function __construct(Consumer $consumer)
     {

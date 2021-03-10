@@ -2,6 +2,7 @@
 
 namespace OldSound\RabbitMqBundle\DataCollector;
 
+use OldSound\RabbitMqBundle\RabbitMq\AMQPLoggedChannel;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,16 +14,18 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class MessageDataCollector extends DataCollector
 {
+    /** @var array */
     private $channels;
 
-    public function __construct($channels)
+    public function __construct(array $channels)
     {
         $this->channels = $channels;
         $this->data = array();
     }
 
-    public function collect(Request $request, Response $response, \Throwable $exception = null)
+    public function collect(Request $request, Response $response, \Throwable $exception = null): void
     {
+        /** @var AMQPLoggedChannel $channel */
         foreach ($this->channels as $channel) {
             foreach ($channel->getBasicPublishLog() as $log) {
                 $this->data[] = $log;
@@ -30,22 +33,22 @@ class MessageDataCollector extends DataCollector
         }
     }
 
-    public function getName()
+    public function getName(): string
     {
         return 'rabbit_mq';
     }
 
-    public function getPublishedMessagesCount()
+    public function getPublishedMessagesCount(): int
     {
         return count($this->data);
     }
 
-    public function getPublishedMessagesLog()
+    public function getPublishedMessagesLog(): array
     {
         return $this->data;
     }
 
-    public function reset()
+    public function reset(): void
     {
         $this->data = [];
     }

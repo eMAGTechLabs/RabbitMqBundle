@@ -16,7 +16,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
      */
     protected $consumer;
 
-    public function stopConsumer()
+    public function stopConsumer(): void
     {
         if ($this->consumer instanceof BatchConsumer) {
             // Process current message, then halt consumer
@@ -29,7 +29,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
         }
     }
 
-    protected function configure()
+    protected function configure(): void
     {
         parent::configure();
 
@@ -38,25 +38,25 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
             ->addArgument('name', InputArgument::REQUIRED, 'Consumer Name')
             ->addOption('batches', 'b', InputOption::VALUE_OPTIONAL, 'Number of batches to consume', 0)
             ->addOption('route', 'r', InputOption::VALUE_OPTIONAL, 'Routing Key', '')
-            ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process', null)
+            ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process')
             ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Enable Debugging')
             ->addOption('without-signals', 'w', InputOption::VALUE_NONE, 'Disable catching of system signals')
             ->setDescription('Executes a Batch Consumer');
-        ;
     }
 
     /**
      * Executes the current command.
      *
+
      * @param   InputInterface      $input      An InputInterface instance
      * @param   OutputInterface     $output     An OutputInterface instance
      *
      * @return  integer                         0 if everything went fine, or an error code
      *
-     * @throws  \InvalidArgumentException       When the number of batches to consume is less than 0
-     * @throws  \BadFunctionCallException       When the pcntl is not installed and option -s is true
+     * @throws  \InvalidArgumentException       When the number of messages to consume is less than 0
+     * @throws  \BadFunctionCallException|\ErrorException       When the pcntl is not installed and option -s is true
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         if (defined('AMQP_WITHOUT_SIGNALS') === false) {
             define('AMQP_WITHOUT_SIGNALS', $input->getOption('without-signals'));
@@ -86,10 +86,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
         return $this->consumer->consume($batchAmountTarget);
     }
 
-    /**
-     * @param   InputInterface  $input
-     */
-    protected function initConsumer(InputInterface $input)
+    protected function initConsumer(InputInterface $input): void
     {
         $this->consumer = $this->getContainer()
             ->get(sprintf($this->getConsumerService(), $input->getArgument('name')));
@@ -103,10 +100,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
         $this->consumer->setRoutingKey($input->getOption('route'));
     }
 
-    /**
-     * @return  string
-     */
-    protected function getConsumerService()
+    protected function getConsumerService(): string
     {
         return 'old_sound_rabbit_mq.%s_batch';
     }

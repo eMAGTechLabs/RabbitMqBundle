@@ -3,6 +3,9 @@
 namespace OldSound\RabbitMqBundle\Tests\RabbitMq;
 
 use OldSound\RabbitMqBundle\RabbitMq\Binding;
+use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AMQPConnection;
+use PhpAmqpLib\Connection\AMQPSSLConnection;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -10,13 +13,13 @@ use PHPUnit\Framework\TestCase;
 class BindingTest extends TestCase
 {
 
-    protected function getBinding($amqpConnection, $amqpChannel)
+    protected function getBinding(AMQPConnection $amqpConnection, AMQPChannel $amqpChannel): Binding
     {
         return new Binding($amqpConnection, $amqpChannel);
     }
 
     /**
-     * @return MockObject
+     * @return MockObject | AMQPConnection
      */
     protected function prepareAMQPConnection()
     {
@@ -25,7 +28,10 @@ class BindingTest extends TestCase
             ->getMock();
     }
 
-    protected function prepareAMQPChannel($channelId = null)
+    /**
+     * @return MockObject | AMQPChannel
+     */
+    protected function prepareAMQPChannel(?string $channelId = null)
     {
         $channelMock = $this->getMockBuilder('\PhpAmqpLib\Channel\AMQPChannel')
             ->disableOriginalConstructor()
@@ -37,7 +43,7 @@ class BindingTest extends TestCase
         return $channelMock;
     }
 
-    public function testQueueBind()
+    public function testQueueBind(): void
     {
         $ch = $this->prepareAMQPChannel('channel_id');
         $con = $this->prepareAMQPConnection();
@@ -62,7 +68,7 @@ class BindingTest extends TestCase
         $binding->setupFabric();
     }
 
-    public function testExhangeBind()
+    public function testExhangeBind(): void
     {
         $ch = $this->prepareAMQPChannel('channel_id');
         $con = $this->prepareAMQPConnection();

@@ -6,10 +6,7 @@ interface ProducerInterface
 {
     /**
      * Publish a message
-     *
-     * @param string $msgBody
-     * @param string $routingKey
-     * @param array $additionalProperties
+     * @return mixed
      */
-    public function publish($msgBody, $routingKey = '', $additionalProperties = array());
+    public function publish(string $msgBody, string $routingKey = '', array $additionalProperties = array());
 }

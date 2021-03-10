@@ -29,11 +29,13 @@ class OldSoundRabbitMqExtension extends Extension
      */
     private $collectorEnabled;
 
+    /** @var array */
     private $channelIds = array();
 
+    /** @var array  */
     private $config = array();
 
-    public function load(array $configs, ContainerBuilder $container)
+    public function load(array $configs, ContainerBuilder $container): void
     {
         $this->container = $container;
 
@@ -69,12 +71,15 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
+    /**
+     * @return object|Configuration|\Symfony\Component\Config\Definition\ConfigurationInterface|null
+     */
     public function getConfiguration(array $config, ContainerBuilder $container)
     {
         return new Configuration($this->getAlias());
     }
 
-    protected function loadConnections()
+    protected function loadConnections(): void
     {
         foreach ($this->config['connections'] as $key => $connection) {
             $connectionSuffix = $connection['use_socket'] ? 'socket_connection.class' : 'connection.class';
@@ -99,9 +104,7 @@ class OldSoundRabbitMqExtension extends Extension
                 // to be inlined in services.xml when dependency on Symfony DependencyInjection is bumped to 2.6
                 $definition->setFactory(array(new Reference($factoryName), 'createConnection'));
             } else {
-                // to be removed when dependency on Symfony DependencyInjection is bumped to 2.6
-                $definition->setFactoryService($factoryName);
-                $definition->setFactoryMethod('createConnection');
+                $definition->setFactory(array(new Reference($factoryName), 'createConnection'));
             }
             $definition->addTag('old_sound_rabbit_mq.connection');
             $definition->setPublic(true);
@@ -110,7 +113,7 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    protected function loadBindings()
+    protected function loadBindings(): void
     {
         if ($this->config['sandbox']) {
             return;
@@ -135,7 +138,7 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    protected function loadProducers()
+    protected function loadProducers(): void
     {
         if ($this->config['sandbox'] == false) {
             foreach ($this->config['producers'] as $key => $producer) {
@@ -180,7 +183,7 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    protected function loadConsumers()
+    protected function loadConsumers(): void
     {
         foreach ($this->config['consumers'] as $key => $consumer) {
             $definition = new Definition('%old_sound_rabbit_mq.consumer.class%');
@@ -245,7 +248,7 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    protected function loadMultipleConsumers()
+    protected function loadMultipleConsumers(): void
     {
         foreach ($this->config['multiple_consumers'] as $key => $consumer) {
             $queues = array();
@@ -330,7 +333,7 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    protected function loadDynamicConsumers()
+    protected function loadDynamicConsumers(): void
     {
         foreach ($this->config['dynamic_consumers'] as $key => $consumer) {
 
@@ -402,7 +405,7 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    protected function loadBatchConsumers()
+    protected function loadBatchConsumers(): void
     {
         foreach ($this->config['batch_consumers'] as $key => $consumer) {
             $definition = new Definition('%old_sound_rabbit_mq.batch_consumer.class%');
@@ -463,7 +466,7 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    protected function loadAnonConsumers()
+    protected function loadAnonConsumers(): void
     {
         foreach ($this->config['anon_consumers'] as $key => $anon) {
             $definition = new Definition('%old_sound_rabbit_mq.anon_consumer.class%');
@@ -487,12 +490,8 @@ class OldSoundRabbitMqExtension extends Extension
     /**
      * Symfony 2 converts '-' to '_' when defined in the configuration. This leads to problems when using x-ha-policy
      * parameter. So we revert the change for right configurations.
-     *
-     * @param array $config
-     *
-     * @return array
      */
-    private function normalizeArgumentKeys(array $config)
+    private function normalizeArgumentKeys(array $config): array
     {
         if (isset($config['arguments'])) {
             $arguments = $config['arguments'];
@@ -517,10 +516,8 @@ class OldSoundRabbitMqExtension extends Extension
      * Support for arguments provided as string. Support for old configuration files.
      *
      * @deprecated
-     * @param string $arguments
-     * @return array
      */
-    private function argumentsStringAsArray($arguments)
+    private function argumentsStringAsArray(string $arguments): array
     {
         $argumentsArray = array();
 
@@ -537,7 +534,7 @@ class OldSoundRabbitMqExtension extends Extension
         return $argumentsArray;
     }
 
-    protected function loadRpcClients()
+    protected function loadRpcClients(): void
     {
         foreach ($this->config['rpc_clients'] as $key => $client) {
             $definition = new Definition('%old_sound_rabbit_mq.rpc_client.class%');
@@ -561,7 +558,7 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    protected function loadRpcServers()
+    protected function loadRpcServers(): void
     {
         foreach ($this->config['rpc_servers'] as $key => $server) {
             $definition = new Definition('%old_sound_rabbit_mq.rpc_server.class%');
@@ -595,7 +592,7 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    protected function injectLoggedChannel(Definition $definition, $name, $connectionName)
+    protected function injectLoggedChannel(Definition $definition, string $name, string $connectionName): void
     {
         $id = sprintf('old_sound_rabbit_mq.channel.%s', $name);
         $channel = new Definition('%old_sound_rabbit_mq.logged.channel.class%');
@@ -610,23 +607,20 @@ class OldSoundRabbitMqExtension extends Extension
         $definition->addArgument(new Reference($id));
     }
 
-    protected function injectConnection(Definition $definition, $connectionName)
+    protected function injectConnection(Definition $definition, string $connectionName): void
     {
         $definition->addArgument(new Reference(sprintf('old_sound_rabbit_mq.connection.%s', $connectionName)));
     }
 
-    public function getAlias()
+    public function getAlias(): string
     {
         return 'old_sound_rabbit_mq';
     }
 
     /**
      * Add proper dequeuer aware call
-     *
-     * @param string $callback
-     * @param string $name
      */
-    protected function addDequeuerAwareCall($callback, $name)
+    protected function addDequeuerAwareCall(string $callback, string $name): void
     {
         if (!$this->container->has($callback)) {
             return;
@@ -639,7 +633,7 @@ class OldSoundRabbitMqExtension extends Extension
         }
     }
 
-    private function injectLogger(Definition $definition)
+    private function injectLogger(Definition $definition): void
     {
         $definition->addTag('monolog.logger', array(
             'channel' => 'phpamqplib'
@@ -649,10 +643,8 @@ class OldSoundRabbitMqExtension extends Extension
 
     /**
      * Get default AMQP exchange options
-     *
-     * @return array
      */
-    protected function getDefaultExchangeOptions()
+    protected function getDefaultExchangeOptions(): array
     {
         return array(
             'name' => '',
@@ -664,10 +656,8 @@ class OldSoundRabbitMqExtension extends Extension
 
     /**
      * Get default AMQP queue options
-     *
-     * @return array
      */
-    protected function getDefaultQueueOptions()
+    protected function getDefaultQueueOptions(): array
     {
         return array(
             'name' => '',

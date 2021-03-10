@@ -27,25 +27,25 @@ class DynamicConsumer extends Consumer{
      *
      * @return self
      */
-    public function setQueueOptionsProvider(QueueOptionsProviderInterface $queueOptionsProvider)
+    public function setQueueOptionsProvider(QueueOptionsProviderInterface $queueOptionsProvider): self
     {
         $this->queueOptionsProvider = $queueOptionsProvider;
         return $this;
     }
     
-    public function setContext($context)
+    public function setContext(string $context): void
     {
         $this->context = $context;
     }
 
 
-    protected function setupConsumer()
+    public function setupConsumer(): void
     {   
         $this->mergeQueueOptions();
         parent::setupConsumer();
     }
     
-    protected function mergeQueueOptions()
+    protected function mergeQueueOptions(): void
     {
         if (null === $this->queueOptionsProvider) {
             return;

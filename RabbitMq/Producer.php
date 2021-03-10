@@ -10,37 +10,34 @@ use PhpAmqpLib\Wire\AMQPTable;
  */
 class Producer extends BaseAmqp implements ProducerInterface
 {
+    /** @var string */
     protected $contentType = 'text/plain';
+    /** @var int */
     protected $deliveryMode = 2;
 
-    public function setContentType($contentType)
+    public function setContentType(string $contentType): Producer
     {
         $this->contentType = $contentType;
 
         return $this;
     }
 
-    public function setDeliveryMode($deliveryMode)
+    public function setDeliveryMode(int $deliveryMode): Producer
     {
         $this->deliveryMode = $deliveryMode;
 
         return $this;
     }
 
-    protected function getBasicProperties()
+    protected function getBasicProperties(): array
     {
         return array('content_type' => $this->contentType, 'delivery_mode' => $this->deliveryMode);
     }
 
     /**
      * Publishes the message and merges additional properties with basic properties
-     *
-     * @param string $msgBody
-     * @param string $routingKey
-     * @param array $additionalProperties
-     * @param array $headers
      */
-    public function publish($msgBody, $routingKey = '', $additionalProperties = array(), array $headers = null)
+    public function publish(string $msgBody, string $routingKey = '', array $additionalProperties = array(), array $headers = null): void
     {
         if ($this->autoSetupFabric) {
             $this->setupFabric();

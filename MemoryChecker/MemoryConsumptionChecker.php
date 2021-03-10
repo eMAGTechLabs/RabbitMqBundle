@@ -14,8 +14,6 @@ class MemoryConsumptionChecker
 
     /**
      * MemoryManager constructor.
-     *
-     * @param NativeMemoryUsageProvider $memoryUsageProvider
      */
     public function __construct(NativeMemoryUsageProvider $memoryUsageProvider) {
         $this->memoryUsageProvider = $memoryUsageProvider;
@@ -24,10 +22,8 @@ class MemoryConsumptionChecker
     /**
      * @param int|string $allowedConsumptionUntil
      * @param int|string $maxConsumptionAllowed
-     *
-     * @return bool
      */
-    public function isRamAlmostOverloaded($maxConsumptionAllowed, $allowedConsumptionUntil = 0)
+    public function isRamAlmostOverloaded($maxConsumptionAllowed, $allowedConsumptionUntil = 0): bool
     {
         $allowedConsumptionUntil = $this->convertHumanUnitToNumerical($allowedConsumptionUntil);
         $maxConsumptionAllowed = $this->convertHumanUnitToNumerical($maxConsumptionAllowed);
@@ -38,10 +34,8 @@ class MemoryConsumptionChecker
 
     /**
      * @param int|string $humanUnit
-     *
-     * @return int
      */
-    private function convertHumanUnitToNumerical($humanUnit)
+    private function convertHumanUnitToNumerical($humanUnit): int
     {
         $numerical = $humanUnit;
         if (!is_numeric($humanUnit)) {

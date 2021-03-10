@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
  */
 class MemoryConsumptionCheckerTest extends TestCase
 {
-    public function testMemoryIsNotAlmostOverloaded()
+    public function testMemoryIsNotAlmostOverloaded(): void
     {
         $currentMemoryUsage = '7M';
         $allowedConsumptionUntil = '2M';
@@ -27,7 +27,7 @@ class MemoryConsumptionCheckerTest extends TestCase
         $this->assertFalse($memoryManager->isRamAlmostOverloaded($maxConsumptionAllowed, $allowedConsumptionUntil));
     }
 
-    public function testMemoryIsAlmostOverloaded()
+    public function testMemoryIsAlmostOverloaded(): void
     {
         $currentMemoryUsage = '9M';
         $allowedConsumptionUntil = '2M';
@@ -41,7 +41,7 @@ class MemoryConsumptionCheckerTest extends TestCase
         $this->assertTrue($memoryManager->isRamAlmostOverloaded($maxConsumptionAllowed, $allowedConsumptionUntil));
     }
 
-    public function testMemoryExactValueIsNotAlmostOverloaded()
+    public function testMemoryExactValueIsNotAlmostOverloaded(): void
     {
         $currentMemoryUsage = '7M';
         $maxConsumptionAllowed = '10M';
@@ -54,7 +54,7 @@ class MemoryConsumptionCheckerTest extends TestCase
         $this->assertFalse($memoryManager->isRamAlmostOverloaded($maxConsumptionAllowed));
     }
 
-    public function testMemoryExactValueIsAlmostOverloaded()
+    public function testMemoryExactValueIsAlmostOverloaded(): void
     {
         $currentMemoryUsage = '11M';
         $maxConsumptionAllowed = '10M';

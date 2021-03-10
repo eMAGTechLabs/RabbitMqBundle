@@ -10,7 +10,7 @@
 
 The RabbitMqBundle incorporates messaging in your application via [RabbitMQ](http://www.rabbitmq.com/) using the [php-amqplib](http://github.com/php-amqplib/php-amqplib) library.
 
-The bundle implements several messaging patterns as seen on the [Thumper](https://github.com/php-amqplib/Thumper) library. Therefore publishing messages to RabbitMQ from a Symfony controller is as easy as:
+The bundle implements several messaging patterns as seen on the [Thumper](https://github.com/php-amqplib/Thumper) library. Therefore, publishing messages to RabbitMQ from a Symfony controller is as easy as:
 
 ```php
 $msg = array('user_id' => 1235, 'image_path' => '/path/to/new/pic.png');
@@ -29,7 +29,7 @@ This bundle was presented at [Symfony Live Paris 2011](http://www.symfony-live.c
 
 ## Version 2 ##
 Due to the breaking changes happened caused by Symfony >=4.4, a new tag was released, making the bundle compatible with Symfony >=4.4.
-Also it eliminates a lot notices caused by symfony event dispatcher in Symfony 4.3.
+Also, it eliminates a lot of notices caused by symfony event dispatcher in Symfony 4.3.
 
 ## Installation ##
 
@@ -71,7 +71,7 @@ Require the bundle in your composer.json file:
 }
 ```
 
-Register the extension and the compiler pass:
+Register the extension, and the compiler pass:
 
 ```php
 use OldSound\RabbitMqBundle\DependencyInjection\OldSoundRabbitMqExtension;
@@ -140,7 +140,7 @@ old_sound_rabbit_mq:
             callback:         upload_picture_service
 ```
 
-Here we configure the connection service and the message endpoints that our application will have. In this example your service container will contain the service `old_sound_rabbit_mq.upload_picture_producer` and `old_sound_rabbit_mq.upload_picture_consumer`. The later expects that there's a service called `upload_picture_service`.
+Here we configure the connection service, and the message endpoints that our application will have. In this example your service container will contain the service `old_sound_rabbit_mq.upload_picture_producer` and `old_sound_rabbit_mq.upload_picture_consumer`. The later expects that there's a service called `upload_picture_service`.
 
 If you don't specify a connection for the client, the client will look for a connection with the same alias. So for our `upload_picture` the service container will look for an `upload_picture` connection.
 
@@ -181,14 +181,14 @@ queue_options:
 
 In a Symfony environment all services are fully bootstrapped for each request, from version >= 4.3 you can declare
 a service as lazy ([Lazy Services](http://symfony.com/doc/master/components/dependency_injection/lazy_services.html)).
-This bundle still doesn't support new Lazy Services feature but you can set `lazy: true` in your connection
+This bundle still doesn't support new Lazy Services feature, but you can set `lazy: true` in your connection
 configuration to avoid unnecessary connections to your message broker in every request.
 It's extremely recommended to use lazy connections because performance reasons, nevertheless lazy option is disabled
 by default to avoid possible breaks in applications already using this bundle.
 
 ### Import notice - Heartbeats ###
 
-It's a good idea to set the ```read_write_timeout``` to 2x the heartbeat so your socket will be open. If you don't do this, or use a different multiplier, there's a risk the __consumer__ socket will timeout.
+It's a good idea to set the ```read_write_timeout``` to 2x the heartbeat, so your socket will be open. If you don't do this, or use a different multiplier, there's a risk the __consumer__ socket will timeout.
 
 ### Dynamic Connection Parameters ###
 
@@ -196,7 +196,7 @@ Sometimes your connection information may need to be dynamic. Dynamic connection
 override parameters programmatically through a service.
 
 e.g. In a scenario when the `vhost` parameter of the connection depends on the current tenant of your white-labeled
-application and you do not want (or can't) change it's configuration every time.
+application, and you do not want (or can't) change its configuration every time.
 
 Define a service under `connection_parameters_provider` that implements the `ConnectionParametersProviderInterface`,
 and add it to the appropriate `connections` configuration.
@@ -283,7 +283,7 @@ consumers:
         callback:         upload_picture_service
 ```
 
-As we see there, the __callback__ option has a reference to an __upload\_picture\_service__. When the consumer gets a message from the server it will execute such callback. If for testing or debugging purposes you need to specify a different callback, then you can change it there.
+As we see there, the __callback__ option has a reference to an __upload\_picture\_service__. When the consumer gets a message from the server, it will execute such a callback. If for testing or debugging purposes you need to specify a different callback, then you can change it there.
 
 Apart from the callback we also specify the connection to use, the same way as we do with a __producer__. The remaining options are the __exchange\_options__ and the __queue\_options__. The __exchange\_options__ should be the same ones as those used for the __producer__. In the __queue\_options__ we will provide a __queue name__. Why?
 
@@ -295,7 +295,7 @@ Now, how to run a consumer? There's a command for it that can be executed like t
 $ ./app/console rabbitmq:consumer -m 50 upload_picture
 ```
 
-What does this mean? We are executing the __upload\_picture__ consumer telling it to consume only 50 messages. Every time the consumer receives a message from the server, it will execute the configured callback passing the AMQP message as an instance of the `PhpAmqpLib\Message\AMQPMessage` class. The message body can be obtained by calling `$msg->body`. By default the consumer will process messages in an __endless loop__ for some definition of _endless_.
+What does this mean? We are executing the __upload\_picture__ consumer telling it to consume only 50 messages. Every time the consumer receives a message from the server, it will execute the configured callback passing the AMQP message as an instance of the `PhpAmqpLib\Message\AMQPMessage` class. The message body can be obtained by calling `$msg->body`. By default, the consumer will process messages in an __endless loop__ for some definition of _endless_.
 
 If you want to be sure that consumer will finish executing instantly on Unix signal, you can run command with flag `-w`.
 
@@ -415,9 +415,9 @@ class OnIdleEvent extends AMQPEvent
 }
 ```
 
-Event raised when `wait` method exit by timeout without receiving a message. 
+Event raised when `wait` method exit by the timeout without receiving a message. 
 In order to make use of this event a consumer `idle_timeout` has to be [configured](#idle-timeout). 
-By default process exit on idle timeout, you can prevent it by setting `$event->setForceStop(false)` in a listener.
+By default, process exit on an idle timeout, you can prevent it by setting `$event->setForceStop(false)` in a listener.
 
 #### Idle timeout ####
 
@@ -455,10 +455,10 @@ consumers:
 #### Graceful max execution timeout ####
 
 If you'd like your consumer to be running up to certain time and then gracefully exit, then set the `graceful_max_execution.timeout` in seconds.
-"Gracefully exit" means, that the consumer will exit either after the currently running task or immediatelly, when waiting for new tasks.
+"Gracefully exit" means, that the consumer will exit either after the currently running task or immediately, when waiting for new tasks.
 The `graceful_max_execution.exit_code` specifies what exit code should be returned by the consumer when the graceful max execution timeout occurs. Without specifying it, the consumer will exit with status `0`.
 
-This feature is great in conjuction with supervisord, which together can allow for periodical memory leaks cleanup, connection with database/rabbitmq renewal and more.
+This feature is great in conjunction with supervisord, which together can allow for periodical memory leaks cleanup, connection with a database/rabbitmq renewal and more.
 
 ```yaml
 consumers:
@@ -483,7 +483,7 @@ consumers:
 
 From: http://www.rabbitmq.com/tutorials/tutorial-two-python.html
 
-Be careful as implementing the fair dispatching introduce a latency that will hurt performance (see [this blogpost](http://www.rabbitmq.com/blog/2012/05/11/some-queuing-theory-throughput-latency-and-bandwidth/)). But implemeting it allow you to scale horizontally dynamically as the queue is increasing.
+Be careful as implementing the fair dispatching introduce a latency that will hurt performance (see [this blogpost](http://www.rabbitmq.com/blog/2012/05/11/some-queuing-theory-throughput-latency-and-bandwidth/)). But, implementing it allow you to scale horizontally dynamically as the queue is increasing.
 You should evaluate, as the blogpost recommends, the right value of prefetch_size accordingly with the time taken to process each message and your network performance.
 
 With RabbitMqBundle, you can configure that qos_options per consumer like that:
@@ -523,7 +523,7 @@ class UploadPictureConsumer implements ConsumerInterface
         if (!$isUploadSuccess) {
             // If your image upload failed due to a temporary error you can return false
             // from your callback so the message will be rejected by the consumer and
-            // requeued by RabbitMQ.
+            // requeue by RabbitMQ.
             // Any other value not equal to false will acknowledge the message and remove it
             // from the queue
             return false;
@@ -547,7 +547,7 @@ This seems to be quite a lot of work for just sending messages, let's recap to h
 - Start the consumer from the CLI.
 - Add the code to publish messages inside the controller.
 
-And that's it!
+And, that's it!
 
 ### Audit / Logging ###
 
@@ -599,7 +599,7 @@ First we have to start the server from the command line:
 $ ./app/console_dev rabbitmq:rpc-server random_int
 ```
 
-And then add the following code to our controller:
+And then, add the following code to our controller:
 
 ```php
 public function indexAction($name)
@@ -620,7 +620,7 @@ The arguments we are sending are the __min__ and __max__ values for the `rand()`
 
 The final piece is to get the reply. Our PHP script will block till the server returns a value. The __$replies__ variable will be an associative array where each reply from the server will contained in the respective __request\_id__ key.
 
-By default the RPC Client expects the response to be serialized. If the server you are working with returns a non-serialized result then set the RPC client expect_serialized_response option to false. For example, if the integer_store server didn't serialize the result the client would be set as below:
+By default, the RPC Client expects the response to be serialized. If the server you are working with returns a non-serialized result then set the RPC client expect_serialized_response option to false. For example, if the integer_store server didn't serialize the result the client would be set as below:
 
 ```yaml
 rpc_clients:
@@ -629,7 +629,7 @@ rpc_clients:
         expect_serialized_response: false
 ```
 
-You can also set a expiration for request in seconds, after which message will no longer be handled by server and client request will simply time out. Setting expiration for messages works only for RabbitMQ 3.x and above. Visit http://www.rabbitmq.com/ttl.html#per-message-ttl for more information.
+You can also set an expiration for request in seconds, after which message will no longer be handled by a server and client request will simply time out. Setting expiration for messages works only for RabbitMQ 3.x and above. Visit http://www.rabbitmq.com/ttl.html#per-message-ttl for more information.
 
 ```php
 public function indexAction($name)
@@ -650,7 +650,7 @@ As you can guess, we can also make __parallel RPC calls__.
 
 ### Parallel RPC ###
 
-Let's say that for rendering some webpage, you need to perform two database queries, one taking 5 seconds to complete and the other one taking 2 seconds –very expensive queries–. If you execute them sequentially, then your page will be ready to deliver in about 7 seconds. If you run them in parallel then you will have your page served in about 5 seconds. With RabbitMqBundle we can do such parallel calls with ease. Let's define a parallel client in the config and another RPC server:
+Let's say that for rendering some webpage, you need to perform two database queries, one taking 5 seconds to complete, and the other one taking 2 seconds –very expensive queries–. If you execute them sequentially, then your page will be ready to deliver in about 7 seconds. If you run them in parallel then you will have your page served in about 5 seconds. With RabbitMqBundle we can do such parallel calls with ease. Let's define a parallel client in the config and another RPC server:
 
 ```yaml
 rpc_clients:
@@ -677,7 +677,7 @@ public function indexAction($name)
 }
 ```
 
-Is very similar to the previous example, we just have an extra `addRequest` call. Also we provide meaningful request identifiers so later will be easier for us to find the reply we want in the __$replies__ array.
+Is very similar to the previous example, we just have an extra `addRequest` call. Also, we provide meaningful request identifiers so later will be easier for us to find the reply we want in the __$replies__ array.
 
 ### Direct Reply-To clients ###
 
@@ -687,7 +687,7 @@ This option will use pseudo-queue __amq.rabbitmq.reply-to__ when doing RPC calls
 
 ### Multiple Consumers ###
 
-It's a good practice to have a lot of queues for logic separation. With a simple consumer you will have to create one worker (consumer) per queue and it can be hard to manage when dealing
+It's a good practice to have a lot of queues for logic separation. With a simple consumer you will have to create one worker (consumer) per queue, and it can be hard to manage when dealing
 with many evolutions (forget to add a line in your supervisord configuration?). This is also useful for small queues as you may not want to have as many workers as queues, and want to regroup
 some tasks together without losing flexibility and separation principle.
 
@@ -731,13 +731,13 @@ Be aware that queues providers are responsible for the proper calls to `setDeque
 
 ### Arbitrary Bindings ###
 
-You may find that your application has a complex workflow and you you need to have arbitrary binding. Arbitrary
+You may find that your application has a complex workflow, and you need to have arbitrary binding. Arbitrary
 binding scenarios might include exchange to exchange bindings via `destination_is_exchange` property.
 
 ```yaml
 bindings:
     - {exchange: foo, destination: bar, routing_key: 'baz.*' }
-    - {exchange: foo1, destination: foo, routing_key: 'baz.*' destination_is_exchange: true}
+    - {exchange: foo1, destination: foo, routing_key: 'baz.*', destination_is_exchange: true}
 ```
 
 The rabbitmq:setup-fabric command will declare exchanges and queues as defined in your producer, consumer
@@ -749,7 +749,7 @@ and multi consumer configurations before it creates your arbitrary bindings. How
 Sometimes you have to change the consumer's configuration on the fly.
 Dynamic consumers allow you to define the consumers queue options programmatically, based on the context.
 
-e.g. In a scenario when the defined consumer must be responsible for a dynamic number of topics and you do not want (or can't) change it's configuration every time.
+e.g. In a scenario when the defined consumer must be responsible for a dynamic number of topics, and you do not want (or can't) change it's configuration every time.
 
 Define a service `queue_options_provider` that implements the `QueueOptionsProviderInterface`, and add it to your `dynamic_consumers` configuration.
 
@@ -774,7 +774,7 @@ In this case the `proc_logs` consumer runs for `server1` and it can decide over 
 
 Now, why will we ever need anonymous consumers? This sounds like some internet threat or something… Keep reading.
 
-In AMQP there's a type of exchange called __topic__ where the messages are routed to queues based on –you guess– the topic of the message. We can send logs about our application to a RabbiMQ topic exchange using as topic the hostname where the log was created and the severity of such log. The message body will be the log content and our routing keys the will be like this:
+In AMQP there's a type of exchange called __topic__ where the messages are routed to the queues based on –you guess– the topic of the message. We can send logs about our application to a RabbiMQ topic exchange using as topic the hostname where the log was created and the severity of such log. The message body will be the log content and our routing keys the will be like this:
 
 - server1.error
 - server2.info
@@ -783,7 +783,7 @@ In AMQP there's a type of exchange called __topic__ where the messages are route
 
 Since we don't want to be filling up queues with unlimited logs what we can do is that when we want to monitor the system, we can launch a consumer that creates a queue and attaches to the __logs__ exchange based on some topic, for example, we would like to see all the errors reported by our servers. The routing key will be something like: __\#.error__. In such case we have to come up with a queue name, bind it to the exchange, get the logs, unbind it and delete the queue. Happily AMPQ provides a way to do this automatically if you provide the right options when you declare and bind the queue. The problem is that you don't want to remember all those options. For such reason we implemented the __Anonymous Consumer__ pattern.
 
-When we start an Anonymous Consumer, it will take care of such details and we just have to think about implementing the callback for when the messages arrive. Is it called Anonymous because it won't specify a queue name, but it will wait for RabbitMQ to assign a random one to it.
+When we start an Anonymous Consumer, it will take care of such details, and we just have to think about implementing the callback for when the messages arrive. Is it called Anonymous because it won't specify a queue name, but it will wait for RabbitMQ to assign a random one to it.
 
 Now, how to configure and run such consumer?
 
@@ -795,7 +795,7 @@ anon_consumers:
         callback:         logs_watcher
 ```
 
-There we specify the exchange name and it's type along with the callback that should be executed when a message arrives.
+There we specify the exchange name, and it's type along with the callback that should be executed when a message arrives.
 
 This Anonymous Consumer is now able to listen to Producers, which are linked to the same exchange and of type _topic_:
 
@@ -838,9 +838,9 @@ batch_consumers:
             timeout: 60
 ```
 
-*Note*: If the `keep_alive` option is set to `true`, `idle_timeout_exit_code` will be ignored and the consumer process continues.
+*Note*: If the `keep_alive` option is set to `true`, `idle_timeout_exit_code` will be ignored, and the consumer process continues.
 
-You can implement a batch consumer that will acknowledge all messages in one return or you can have control on what message to acknoledge.
+You can implement a batch consumer that will acknowledge all messages in one return, or you can have control on what message to acknowledge.
 
 ```php
 namespace AppBundle\Service;
@@ -927,9 +927,9 @@ producers:
       exchange_options: {name: 'words', type: direct}
 ```
 
-That producer will publish messages to the `words` direct exchange. Of course you can adapt the configuration to whatever you like.
+That producer will publish messages to the `words` direct exchange. Of course, you can adapt the configuration to whatever you like.
 
-Then let's say you want to publish the contents of some XML files so they are processed by a farm of consumers. You could publish them by just using a command like this:
+Then let's say you want to publish the contents of some XML files, so they are processed by a farm of consumers. You could publish them by just using a command like this:
 
 ```bash
 $ find vendor/symfony/ -name "*.xml" -print0 | xargs -0 cat | ./app/console rabbitmq:stdin-producer words
@@ -984,8 +984,8 @@ consumers:
       auto_setup_fabric: false
 ```
 
-By default a consumer or producer will declare everything it needs with RabbitMQ when it starts.
-Be careful using this, when exchanges or queues are not defined, there will be errors. When you've changed any configuration you need to run the above setup-fabric command to declare your configuration.
+By default, a consumer or producer will declare everything it needs with RabbitMQ when it starts.
+Be careful using this, when exchanges or queues are not defined, there will be errors. After you've changed any configuration, you need to run the above setup-fabric command to declare your configuration.
 
 
 ## How To Contribute ##

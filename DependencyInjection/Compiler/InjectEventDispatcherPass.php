@@ -19,7 +19,7 @@ class InjectEventDispatcherPass implements CompilerPassInterface
     /**
      * @inheritDoc
      */
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         if (!$container->has(self::EVENT_DISPATCHER_SERVICE_ID)) {
             return;

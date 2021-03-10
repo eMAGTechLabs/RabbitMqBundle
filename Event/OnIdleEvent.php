@@ -30,18 +30,12 @@ class OnIdleEvent extends AMQPEvent
         $this->forceStop = true;
     }
 
-    /**
-     * @return boolean
-     */
-    public function isForceStop()
+    public function isForceStop(): bool
     {
         return $this->forceStop;
     }
 
-    /**
-     * @param boolean $forceStop
-     */
-    public function setForceStop($forceStop)
+    public function setForceStop(bool $forceStop): void
     {
         $this->forceStop = $forceStop;
     }

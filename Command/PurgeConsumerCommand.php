@@ -13,7 +13,7 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
  */
 class PurgeConsumerCommand extends ConsumerCommand
 {
-    protected function configure()
+    protected function configure(): void
     {
         $this->addArgument('name', InputArgument::REQUIRED, 'Consumer Name')
              ->setDescription('Purge a consumer\'s queue')
@@ -22,13 +22,7 @@ class PurgeConsumerCommand extends ConsumerCommand
         $this->setName('rabbitmq:purge');
     }
 
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     *
-     * @return int
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $noConfirmation = (bool) $input->getOption('no-confirmation');
 
@@ -50,7 +44,7 @@ class PurgeConsumerCommand extends ConsumerCommand
 
         $this->consumer = $this->getContainer()
             ->get(sprintf($this->getConsumerService(), $input->getArgument('name')));
-        $this->consumer->purge($input->getArgument('name'));
+        $this->consumer->purge();
 
         return 0;
     }

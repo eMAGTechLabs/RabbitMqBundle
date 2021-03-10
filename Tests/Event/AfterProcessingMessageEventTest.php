@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
  */
 class AfterProcessingMessageEventTest extends TestCase
 {
-    protected function getConsumer()
+    protected function getConsumer(): Consumer
     {
         return new Consumer(
             $this->getMockBuilder('\PhpAmqpLib\Connection\AMQPStreamConnection')
@@ -26,7 +26,7 @@ class AfterProcessingMessageEventTest extends TestCase
         );
     }
 
-    public function testEvent()
+    public function testEvent(): void
     {
         $AMQPMessage = new AMQPMessage('body');
         $consumer = $this->getConsumer();

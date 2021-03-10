@@ -29,7 +29,7 @@ class MultipleConsumerCommandTest extends BaseCommandTest
     /**
      * testInputsDefinitionCommand
      */
-    public function testInputsDefinitionCommand()
+    public function testInputsDefinitionCommand(): void
     {
         // check argument
         $definition = $this->command->getDefinition();

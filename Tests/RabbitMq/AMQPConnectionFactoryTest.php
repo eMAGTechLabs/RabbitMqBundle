@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 class AMQPConnectionFactoryTest extends TestCase
 {
-    public function testDefaultValues()
+    public function testDefaultValues(): void
     {
         $factory = new AMQPConnectionFactory(
             'OldSound\RabbitMqBundle\Tests\RabbitMq\Fixtures\AMQPConnection',
@@ -39,7 +39,7 @@ class AMQPConnectionFactoryTest extends TestCase
         ), $instance->constructParams);
     }
 
-    public function testSocketConnection()
+    public function testSocketConnection(): void
     {
         $factory = new AMQPConnectionFactory(
             'OldSound\RabbitMqBundle\Tests\RabbitMq\Fixtures\AMQPSocketConnection',
@@ -66,7 +66,7 @@ class AMQPConnectionFactoryTest extends TestCase
         ), $instance->constructParams);
     }
 
-    public function testSocketConnectionWithParams()
+    public function testSocketConnectionWithParams(): void
     {
         $factory = new AMQPConnectionFactory(
             'OldSound\RabbitMqBundle\Tests\RabbitMq\Fixtures\AMQPSocketConnection',
@@ -96,7 +96,7 @@ class AMQPConnectionFactoryTest extends TestCase
         ), $instance->constructParams);
     }
 
-    public function testStandardConnectionParameters()
+    public function testStandardConnectionParameters(): void
     {
         $factory = new AMQPConnectionFactory(
             'OldSound\RabbitMqBundle\Tests\RabbitMq\Fixtures\AMQPConnection',
@@ -130,7 +130,7 @@ class AMQPConnectionFactoryTest extends TestCase
         ), $instance->constructParams);
     }
 
-    public function testSetConnectionParametersWithUrl()
+    public function testSetConnectionParametersWithUrl(): void
     {
         $factory = new AMQPConnectionFactory(
             'OldSound\RabbitMqBundle\Tests\RabbitMq\Fixtures\AMQPConnection',
@@ -165,7 +165,7 @@ class AMQPConnectionFactoryTest extends TestCase
         ), $instance->constructParams);
     }
 
-    public function testSetConnectionParametersWithUrlEncoded()
+    public function testSetConnectionParametersWithUrlEncoded(): void
     {
         $factory = new AMQPConnectionFactory(
             'OldSound\RabbitMqBundle\Tests\RabbitMq\Fixtures\AMQPConnection',
@@ -195,7 +195,7 @@ class AMQPConnectionFactoryTest extends TestCase
         ), $instance->constructParams);
     }
 
-    public function testSetConnectionParametersWithUrlWithoutVhost()
+    public function testSetConnectionParametersWithUrlWithoutVhost(): void
     {
         $factory = new AMQPConnectionFactory(
             'OldSound\RabbitMqBundle\Tests\RabbitMq\Fixtures\AMQPConnection',
@@ -225,7 +225,7 @@ class AMQPConnectionFactoryTest extends TestCase
         ), $instance->constructParams);
     }
 
-    public function testSSLConnectionParameters()
+    public function testSSLConnectionParameters(): void
     {
         $factory = new AMQPConnectionFactory(
             'OldSound\RabbitMqBundle\Tests\RabbitMq\Fixtures\AMQPConnection',
@@ -270,7 +270,7 @@ class AMQPConnectionFactoryTest extends TestCase
         ), $instance->constructParams);
     }
 
-    public function testConnectionsParametersProviderWithConstructorArgs()
+    public function testConnectionsParametersProviderWithConstructorArgs(): void
     {
         $connectionParametersProvider = $this->prepareConnectionParametersProvider();
         $connectionParametersProvider->expects($this->once())
@@ -292,7 +292,7 @@ class AMQPConnectionFactoryTest extends TestCase
         $this->assertEquals(array(1,2,3,4), $instance->constructParams);
     }
 
-    public function testConnectionsParametersProvider()
+    public function testConnectionsParametersProvider(): void
     {
         $connectionParametersProvider = $this->prepareConnectionParametersProvider();
         $connectionParametersProvider->expects($this->once())

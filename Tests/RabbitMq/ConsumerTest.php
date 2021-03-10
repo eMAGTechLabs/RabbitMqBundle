@@ -13,17 +13,24 @@ use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
 use PHPUnit\Framework\Assert;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface as ContractsEventDispatcherInterface;
 
 class ConsumerTest extends TestCase
 {
-    protected function getConsumer($amqpConnection, $amqpChannel)
+    /**
+     * @return Consumer
+     */
+    protected function getConsumer(AMQPConnection $amqpConnection, AMQPChannel $amqpChannel)
     {
         return new Consumer($amqpConnection, $amqpChannel);
     }
 
+    /**
+     * @return MockObject | AMQPConnection
+     */
     protected function prepareAMQPConnection()
     {
         return $this->getMockBuilder(AMQPStreamConnection::class)
@@ -31,6 +38,9 @@ class ConsumerTest extends TestCase
             ->getMock();
     }
 
+    /**
+     * @return MockObject | AMQPChannel
+     */
     protected function prepareAMQPChannel()
     {
         return $this->getMockBuilder(AMQPChannel::class)
@@ -42,8 +52,10 @@ class ConsumerTest extends TestCase
      * Check if the message is requeued or not correctly.
      *
      * @dataProvider processMessageProvider
+     *
+     * @param int|bool|null $processFlag
      */
-    public function testProcessMessage($processFlag, $expectedMethod = null, $expectedRequeue = null)
+    public function testProcessMessage($processFlag, string $expectedMethod = null, ?bool $expectedRequeue = null): void
     {
         $amqpConnection = $this->prepareAMQPConnection();
         $amqpChannel = $this->prepareAMQPChannel();
@@ -98,7 +110,7 @@ class ConsumerTest extends TestCase
         $consumer->processMessage($amqpMessage);
     }
 
-    public function processMessageProvider()
+    public function processMessageProvider(): array
     {
         return array(
             array(null, 'basic_ack'), // Remove message from queue only if callback return not false
@@ -111,10 +123,7 @@ class ConsumerTest extends TestCase
         );
     }
 
-    /**
-     * @return array
-     */
-    public function consumeProvider()
+    public function consumeProvider(): array
     {
         $testCases["All ok 4 callbacks"] = array(
             array(
@@ -138,10 +147,8 @@ class ConsumerTest extends TestCase
 
     /**
      * @dataProvider consumeProvider
-     *
-     * @param array $data
      */
-    public function testConsume(array $data)
+    public function testConsume(array $data): void
     {
         $consumerCallBacks = $data['messages'];
 
@@ -193,7 +200,7 @@ class ConsumerTest extends TestCase
         $consumer->consume(1);
     }
 
-    public function testIdleTimeoutExitCode()
+    public function testIdleTimeoutExitCode(): void
     {
         // set up amqp connection
         $amqpConnection = $this->prepareAMQPConnection();
@@ -229,7 +236,7 @@ class ConsumerTest extends TestCase
         $this->assertTrue(2 == $consumer->consume(1));
     }
 
-    public function testShouldAllowContinueConsumptionAfterIdleTimeout()
+    public function testShouldAllowContinueConsumptionAfterIdleTimeout(): void
     {
         // set up amqp connection
         $amqpConnection = $this->prepareAMQPConnection();
@@ -289,7 +296,7 @@ class ConsumerTest extends TestCase
         $consumer->consume(10);
     }
 
-    public function testGracefulMaxExecutionTimeoutExitCode()
+    public function testGracefulMaxExecutionTimeoutExitCode(): void
     {
         // set up amqp connection
         $amqpConnection = $this->prepareAMQPConnection();
@@ -325,7 +332,7 @@ class ConsumerTest extends TestCase
         $this->assertSame(10, $consumer->consume(1));
     }
 
-    public function testGracefulMaxExecutionWontWaitIfPastTheTimeout()
+    public function testGracefulMaxExecutionWontWaitIfPastTheTimeout(): void
     {
         // set up amqp connection
         $amqpConnection = $this->prepareAMQPConnection();
@@ -355,7 +362,7 @@ class ConsumerTest extends TestCase
         $consumer->consume(1);
     }
 
-    public function testTimeoutWait()
+    public function testTimeoutWait(): void
     {
         // set up amqp connection
         $amqpConnection = $this->prepareAMQPConnection();
@@ -397,7 +404,7 @@ class ConsumerTest extends TestCase
         $consumer->consume(1);
     }
 
-    public function testTimeoutWaitWontWaitPastGracefulMaxExecutionTimeout()
+    public function testTimeoutWaitWontWaitPastGracefulMaxExecutionTimeout(): void
     {
         // set up amqp connection
         $amqpConnection = $this->prepareAMQPConnection();
@@ -434,7 +441,7 @@ class ConsumerTest extends TestCase
         $consumer->consume(1);
     }
 
-    public function testTimeoutWaitWontWaitPastIdleTimeout()
+    public function testTimeoutWaitWontWaitPastIdleTimeout(): void
     {
         // set up amqp connection
         $amqpConnection = $this->prepareAMQPConnection();

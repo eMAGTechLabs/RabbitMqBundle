@@ -10,6 +10,8 @@ use OldSound\RabbitMqBundle\MemoryChecker\MemoryConsumptionChecker;
 use OldSound\RabbitMqBundle\MemoryChecker\NativeMemoryUsageProvider;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
+use phpDocumentor\Reflection\Types\Callable_;
+use PHPUnit\Framework\Constraint\Callback;
 
 class Consumer extends BaseConsumer
 {
@@ -41,20 +43,16 @@ class Consumer extends BaseConsumer
 
     /**
      * Set the memory limit
-     *
-     * @param int $memoryLimit
      */
-    public function setMemoryLimit($memoryLimit)
+    public function setMemoryLimit(int $memoryLimit): void
     {
         $this->memoryLimit = $memoryLimit;
     }
 
     /**
      * Get the memory limit
-     *
-     * @return int|null
      */
-    public function getMemoryLimit()
+    public function getMemoryLimit(): ?int
     {
         return $this->memoryLimit;
     }
@@ -62,13 +60,9 @@ class Consumer extends BaseConsumer
     /**
      * Consume the message
      *
-     * @param   int     $msgAmount
-     *
-     * @return  int
-     *
      * @throws  AMQPTimeoutException
      */
-    public function consume($msgAmount)
+    public function consume(int $msgAmount): int
     {
         $this->target = $msgAmount;
 
@@ -125,7 +119,7 @@ class Consumer extends BaseConsumer
     /**
      * Purge the queue
      */
-    public function purge()
+    public function purge(): void
     {
         $this->getChannel()->queue_purge($this->queueOptions['name'], true);
     }
@@ -133,12 +127,16 @@ class Consumer extends BaseConsumer
     /**
      * Delete the queue
      */
-    public function delete()
+    public function delete(): void
     {
         $this->getChannel()->queue_delete($this->queueOptions['name'], true);
     }
 
-    protected function processMessageQueueCallback(AMQPMessage $msg, $queueName, $callback)
+    /**
+     * @param mixed $callback
+     * @throws \Exception
+     */
+    protected function processMessageQueueCallback(AMQPMessage $msg, string $queueName, $callback): void
     {
         $this->dispatchEvent(BeforeProcessingMessageEvent::NAME,
             new BeforeProcessingMessageEvent($this, $msg)
@@ -188,12 +186,15 @@ class Consumer extends BaseConsumer
         }
     }
 
-    public function processMessage(AMQPMessage $msg)
+    public function processMessage(AMQPMessage $msg): void
     {
         $this->processMessageQueueCallback($msg, $this->queueOptions['name'], $this->callback);
     }
 
-    protected function handleProcessMessage(AMQPMessage $msg, $processFlag)
+    /**
+     * @param int|bool $processFlag
+     */
+    protected function handleProcessMessage(AMQPMessage $msg, $processFlag): void
     {
         if ($processFlag === ConsumerInterface::MSG_REJECT_REQUEUE || false === $processFlag) {
             // Reject and requeue message to RabbitMQ
@@ -219,36 +220,25 @@ class Consumer extends BaseConsumer
 
     /**
      * Checks if memory in use is greater or equal than memory allowed for this process
-     *
-     * @return boolean
      */
-    protected function isRamAlmostOverloaded()
+    protected function isRamAlmostOverloaded(): bool
     {
         $memoryManager = new MemoryConsumptionChecker(new NativeMemoryUsageProvider());
 
         return $memoryManager->isRamAlmostOverloaded($this->getMemoryLimit().'M', '5M');
     }
 
-    /**
-     * @param \DateTime|null $dateTime
-     */
-    public function setGracefulMaxExecutionDateTime(\DateTime $dateTime = null)
+    public function setGracefulMaxExecutionDateTime(\DateTime $dateTime = null): void
     {
         $this->gracefulMaxExecutionDateTime = $dateTime;
     }
 
-    /**
-     * @param int $secondsInTheFuture
-     */
-    public function setGracefulMaxExecutionDateTimeFromSecondsInTheFuture($secondsInTheFuture)
+    public function setGracefulMaxExecutionDateTimeFromSecondsInTheFuture(int $secondsInTheFuture): void
     {
         $this->setGracefulMaxExecutionDateTime(new \DateTime("+{$secondsInTheFuture} seconds"));
     }
 
-    /**
-     * @param int $exitCode
-     */
-    public function setGracefulMaxExecutionTimeoutExitCode($exitCode)
+    public function setGracefulMaxExecutionTimeoutExitCode(int $exitCode): void
     {
         $this->gracefulMaxExecutionTimeoutExitCode = $exitCode;
     }
@@ -258,18 +248,12 @@ class Consumer extends BaseConsumer
         $this->timeoutWait = $timeoutWait;
     }
 
-    /**
-     * @return \DateTime|null
-     */
-    public function getGracefulMaxExecutionDateTime()
+    public function getGracefulMaxExecutionDateTime(): ?\DateTime
     {
         return $this->gracefulMaxExecutionDateTime;
     }
 
-    /**
-     * @return int
-     */
-    public function getGracefulMaxExecutionTimeoutExitCode()
+    public function getGracefulMaxExecutionTimeoutExitCode(): int
     {
         return $this->gracefulMaxExecutionTimeoutExitCode;
     }
@@ -316,7 +300,7 @@ class Consumer extends BaseConsumer
         return $waitTimeout;
     }
 
-    public function setLastActivityDateTime(\DateTime $dateTime)
+    public function setLastActivityDateTime(\DateTime $dateTime): void
     {
         $this->lastActivityDateTime = $dateTime;
     }

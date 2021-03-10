@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 class RpcClientTest extends TestCase
 {
-    public function testProcessMessageWithCustomUnserializer()
+    public function testProcessMessageWithCustomUnserializer(): void
     {
         /** @var RpcClient $client */
         $client = $this->getMockBuilder('\OldSound\RabbitMqBundle\RabbitMq\RpcClient')
@@ -32,7 +32,7 @@ class RpcClientTest extends TestCase
         $client->processMessage($message);
     }
 
-    public function testProcessMessageWithNotifyMethod()
+    public function testProcessMessageWithNotifyMethod(): void
     {
         /** @var RpcClient $client */
         $client = $this->getMockBuilder('\OldSound\RabbitMqBundle\RabbitMq\RpcClient')
@@ -56,7 +56,7 @@ class RpcClientTest extends TestCase
         $this->assertSame($expectedNotify, $notified);
     }
 
-    public function testInvalidParameterOnNotify()
+    public function testInvalidParameterOnNotify(): void
     {
         /** @var RpcClient $client */
         $client = $this->getMockBuilder('\OldSound\RabbitMqBundle\RabbitMq\RpcClient')
@@ -69,7 +69,7 @@ class RpcClientTest extends TestCase
         $client->notify('not a callable');
     }
 
-    public function testChannelCancelOnGetRepliesException()
+    public function testChannelCancelOnGetRepliesException(): void
     {
         $client = $this->getMockBuilder('\OldSound\RabbitMqBundle\RabbitMq\RpcClient')
             ->setMethods(null)

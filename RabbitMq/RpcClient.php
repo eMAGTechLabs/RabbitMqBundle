@@ -6,23 +6,31 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 class RpcClient extends BaseAmqp
 {
+    /** @var int */
     protected $requests = 0;
+    /** @var array */
     protected $replies = array();
+    /** @var bool */
     protected $expectSerializedResponse;
+    /** @var int  */
     protected $timeout = 0;
+    /** @var string */
     protected $notifyCallback;
-
+    /** @var string|null */
     private $queueName;
+    /** @var string */
     private $unserializer = 'unserialize';
+    /** @var string|null */
     private $directReplyTo;
+    /** @var string|null */
     private $directConsumerTag;
 
-    public function initClient($expectSerializedResponse = true)
+    public function initClient(bool $expectSerializedResponse = true): void
     {
         $this->expectSerializedResponse = $expectSerializedResponse;
     }
 
-    public function addRequest($msgBody, $server, $requestId = null, $routingKey = '', $expiration = 0)
+    public function addRequest(string $msgBody, string $server, string $requestId = null, string $routingKey = '', int $expiration = 0): void
     {
         if (empty($requestId)) {
             throw new \InvalidArgumentException('You must provide a $requestId');
@@ -55,7 +63,7 @@ class RpcClient extends BaseAmqp
         }
     }
 
-    public function getReplies()
+    public function getReplies(): array
     {
         if ($this->directReplyTo) {
             $consumer_tag = $this->directConsumerTag;
@@ -78,7 +86,7 @@ class RpcClient extends BaseAmqp
         return $this->replies;
     }
 
-    public function processMessage(AMQPMessage $msg)
+    public function processMessage(AMQPMessage $msg): void
     {
         $messageBody = $msg->body;
         if ($this->expectSerializedResponse) {
@@ -91,7 +99,7 @@ class RpcClient extends BaseAmqp
         $this->replies[$msg->get('correlation_id')] = $messageBody;
     }
 
-    protected function getQueueName()
+    protected function getQueueName(): ?string
     {
         if (null === $this->queueName) {
             list($this->queueName, ,) = $this->getChannel()->queue_declare("", false, false, true, false);
@@ -100,12 +108,18 @@ class RpcClient extends BaseAmqp
         return $this->queueName;
     }
 
-    public function setUnserializer($unserializer)
+    /**
+     * @param callable $unserializer
+     */
+    public function setUnserializer($unserializer): void
     {
         $this->unserializer = $unserializer;
     }
 
-    public function notify($callback)
+    /**
+     * @param mixed $callback
+     */
+    public function notify($callback): void
     {
         if (is_callable($callback)) {
             $this->notifyCallback = $callback;
@@ -114,12 +128,12 @@ class RpcClient extends BaseAmqp
         }
     }
 
-    public function setDirectReplyTo($directReplyTo)
+    public function setDirectReplyTo(string $directReplyTo): void
     {
         $this->directReplyTo = $directReplyTo;
     }
 
-    public function reset()
+    public function reset(): void
     {
         $this->replies = array();
         $this->requests = 0;

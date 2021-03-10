@@ -9,7 +9,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class SetupFabricCommand extends BaseRabbitMqCommand
 {
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setName('rabbitmq:setup-fabric')
@@ -18,7 +18,7 @@ class SetupFabricCommand extends BaseRabbitMqCommand
         ;
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         if (defined('AMQP_DEBUG') === false) {
             define('AMQP_DEBUG', (bool) $input->getOption('debug'));

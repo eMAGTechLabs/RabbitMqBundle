@@ -26,8 +26,6 @@ interface QueuesProviderInterface
      *       'callback' => array($callback, 'execute')
      *    )
      * );
-     * @return array
-     * 
      */
-    public function getQueues();
+    public function getQueues(): array;
 }
