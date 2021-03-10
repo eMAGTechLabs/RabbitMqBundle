@@ -36,6 +36,7 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
         $this
             ->setName('rabbitmq:batch:consumer')
             ->addArgument('name', InputArgument::REQUIRED, 'Consumer Name')
+            ->addOption('batches', 'b', InputOption::VALUE_OPTIONAL, 'Number of batches to consume', 0)
             ->addOption('route', 'r', InputOption::VALUE_OPTIONAL, 'Routing Key', '')
             ->addOption('memory-limit', 'l', InputOption::VALUE_OPTIONAL, 'Allowed memory for this process')
             ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Enable Debugging')
@@ -45,6 +46,12 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
 
     /**
      * Executes the current command.
+     *
+
+     * @param   InputInterface      $input      An InputInterface instance
+     * @param   OutputInterface     $output     An OutputInterface instance
+     *
+     * @return  integer                         0 if everything went fine, or an error code
      *
      * @throws  \InvalidArgumentException       When the number of messages to consume is less than 0
      * @throws  \BadFunctionCallException|\ErrorException       When the pcntl is not installed and option -s is true
@@ -68,9 +75,15 @@ final class BatchConsumerCommand extends BaseRabbitMqCommand
             define('AMQP_DEBUG', (bool) $input->getOption('debug'));
         }
 
+        $batchAmountTarget = (int) $input->getOption('batches');
+
+        if (0 > $batchAmountTarget) {
+            throw new \InvalidArgumentException("The -b option should be greater than 0");
+        }
+
         $this->initConsumer($input);
 
-        return $this->consumer->consume();
+        return $this->consumer->consume($batchAmountTarget);
     }
 
     protected function initConsumer(InputInterface $input): void

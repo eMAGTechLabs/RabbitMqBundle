@@ -62,6 +62,11 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
     /**
      * @var int
      */
+    protected $batchAmount = 0;
+
+    /**
+     * @var int
+     */
     protected $consumed = 0;
 
     /**
@@ -70,6 +75,12 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
      */
     protected $gracefulMaxExecutionDateTime;
 
+    /** @var int */
+    private $batchAmountTarget;
+
+    /**
+     * @param \DateTime|null $dateTime
+     */
     public function setGracefulMaxExecutionDateTime(\DateTime $dateTime = null): void
     {
         $this->gracefulMaxExecutionDateTime = $dateTime;
@@ -93,8 +104,10 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
     /**
      * @throws \ErrorException
      */
-    public function consume(): ?int
+    public function consume(int $batchAmountTarget = 0): ?int
     {
+        $this->batchAmountTarget = $batchAmountTarget;
+
         $this->setupConsumer();
 
         while (count($this->getChannel()->callbacks)) {
@@ -112,6 +125,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
             } catch (AMQPTimeoutException $e) {
                 if (!$this->isEmptyBatch()) {
                     $this->batchConsume();
+                    $this->maybeStopConsumer();
                 } elseif ($this->keepAlive === true) {
                     continue;
                 } elseif (null !== $this->getIdleTimeoutExitCode()) {
@@ -172,6 +186,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
             throw $e;
         }
 
+        $this->batchAmount++;
         $this->resetBatch();
     }
 
@@ -207,6 +222,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
             // Remove message from queue only if callback return not false
             $this->getMessageChannel($deliveryTag)->basic_ack($deliveryTag);
         }
+
     }
 
     protected function isCompleteBatch(): bool
@@ -318,7 +334,7 @@ class BatchConsumer extends BaseAmqp implements DequeuerInterface
             pcntl_signal_dispatch();
         }
 
-        if ($this->forceStop) {
+        if ($this->forceStop || ($this->batchAmount == $this->batchAmountTarget && $this->batchAmountTarget > 0)) {
             $this->stopConsuming();
         }
 

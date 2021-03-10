@@ -1,7 +1,7 @@
 # RabbitMqBundle #
 
 [![Latest Version](http://img.shields.io/packagist/v/emag-tech-labs/rabbitmq-bundle.svg?style=flat-square)](https://github.com/eMAGTechLabs/RabbitMqBundle/releases)
-[![Build Status](https://travis-ci.org/eMAGTechLabs/RabbitMqBundle.svg?branch=master)](https://travis-ci.org/eMAGTechLabs/RabbitMqBundle)
+[![Build Status](https://travis-ci.com/eMAGTechLabs/RabbitMqBundle.svg?branch=master)](https://travis-ci.com/eMAGTechLabs/RabbitMqBundle)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/eMAGTechLabs/RabbitMqBundle/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/eMAGTechLabs/RabbitMqBundle/?branch=master)
 [![Code Coverage](https://scrutinizer-ci.com/g/eMAGTechLabs/RabbitMqBundle/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/eMAGTechLabs/RabbitMqBundle/?branch=master)
 [![PHPStan](https://img.shields.io/badge/PHPStan-enabled-brightgreen.svg?style=flat-square)](https://github.com/phpstan/phpstan)
@@ -913,6 +913,8 @@ How to run the following batch consumer:
 ```
 
 Important: BatchConsumers will not have the -m|messages option available
+Important: BatchConsumers can also have the -b|batches option available if you want to only consume a specific number of batches and then stop the consumer.
+! Give the number of the batches only if you want the consumer to stop after those batch messages were consumed.! 
 
 ### STDIN Producer ###
 
