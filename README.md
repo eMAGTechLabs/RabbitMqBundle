@@ -1,4 +1,4 @@
-# This project is abandoned in favour of http://github.com/php-amqplib/php-amqplib as we received access to it. Please switch to the php-amqplib/rabbitmq-bundle using the latest tag (^2.6).
+# This project is abandoned in favour of https://github.com/php-amqplib/RabbitMqBundle as we received access to it. Please switch to the php-amqplib/rabbitmq-bundle using the latest tag (^2.6).
 
 # RabbitMqBundle #
 
