@@ -33,6 +33,7 @@
     "suggest": {
         "symfony/framework-bundle": "To use this lib as a full Symfony Bundle and to use the profiler data collector"
     },
+    "abandoned": "php-amqplib/rabbitmq-bundle",
     "extra": {
         "branch-alias": {
             "dev-master": "1.10.x-dev"
