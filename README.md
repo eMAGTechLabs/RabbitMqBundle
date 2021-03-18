@@ -1,3 +1,5 @@
+# This project is abandoned in favour of http://github.com/php-amqplib/php-amqplib as we received access to it. Please switch to the php-amqplib/rabbitmq-bundle using the latest tag (^2.6).
+
 # RabbitMqBundle #
 
 [![Latest Version](http://img.shields.io/packagist/v/emag-tech-labs/rabbitmq-bundle.svg?style=flat-square)](https://github.com/eMAGTechLabs/RabbitMqBundle/releases)
